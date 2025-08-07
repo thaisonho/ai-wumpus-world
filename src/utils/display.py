@@ -74,7 +74,16 @@ class WumpusWorldDisplay:
                     else:
                         # If nothing specific known, display KB status
                         status = agent_kb_status[x][y]
-                        if status == "Safe":
+                        if agent_known_map[x][y]:  # Show inferred percepts
+                            if STENCH_SYMBOL in agent_known_map[x][y] and BREEZE_SYMBOL in agent_known_map[x][y]:
+                                cell_content = "S/B"
+                            elif STENCH_SYMBOL in agent_known_map[x][y]:
+                                cell_content = "s"
+                            elif BREEZE_SYMBOL in agent_known_map[x][y]:
+                                cell_content = "b"
+                        elif status == "Safe" and agent_known_map[x][y] & {WUMPUS_SYMBOL, PIT_SYMBOL, GOLD_SYMBOL}:
+                            cell_content = "V"  # Visited and empty
+                        elif status == "Safe":
                             cell_content = "S"  # Safe
                         elif status == "Dangerous":
                             cell_content = "D"  # Dangerous

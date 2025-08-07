@@ -92,11 +92,20 @@ class PlanningModule:
                 # Check if the next cell is safe or allowed
                 is_safe = kb_status[next_x][next_y] == "Safe"
                 is_visited = visited_cells[next_x][next_y]
+                is_dangerous = kb_status[next_x][next_y] == "Dangerous"
+                is_unknown = kb_status[next_x][next_y] == "Unknown"
 
                 # Allow moving into dangerous cells if avoid_dangerous is False
                 # Always allow moving into visited cells (they are safe)
                 if is_safe or is_visited or not avoid_dangerous:
-                    new_g_cost = g_cost + self._get_cost(ACTION_MOVE_FORWARD)
+                    risk_cost = 0
+                    if not avoid_dangerous:
+                        if is_dangerous:
+                            risk_cost = 100  # High cost for dangerous cells
+                        elif is_unknown:
+                            risk_cost = 10 # Moderate cost for unknown cells
+                    
+                    new_g_cost = g_cost + self._get_cost(ACTION_MOVE_FORWARD) + risk_cost
                     if new_g_cost < g_costs.get(
                         ((next_x, next_y), current_dir), float("inf")
                     ):
@@ -114,9 +123,9 @@ class PlanningModule:
                                 path_actions + [ACTION_MOVE_FORWARD],
                             ),
                         )
-
+            
             # 2. Try turning left
-            next_dir_idx_left = (current_dir_idx - 1) % len(DIRECTIONS)
+            next_dir_idx_left = (current_dir_idx - 1 + len(DIRECTIONS)) % len(DIRECTIONS)
             next_dir_left = DIRECTIONS[next_dir_idx_left]
             new_g_cost_left = g_cost + self._get_cost(ACTION_TURN_LEFT)
             if new_g_cost_left < g_costs.get(

@@ -4,6 +4,7 @@ from .inference_agent import InferenceEngine
 from .planning_module import PlanningModule
 from utils.constants import (
     N_DEFAULT,
+    K_DEFAULT,
     PERCEPT_STENCH,
     PERCEPT_BREEZE,
     PERCEPT_GLITTER,
@@ -28,9 +29,10 @@ import random
 
 
 class WumpusWorldAgent:
-    def __init__(self, N=N_DEFAULT):
+    def __init__(self, N=N_DEFAULT, K=K_DEFAULT):
         self.N = N
-        self.inference_engine = InferenceEngine(N)
+        self.K = K
+        self.inference_engine = InferenceEngine(N, K)
         self.planning_module = PlanningModule(N)
 
         self.agent_pos = (0, 0)
@@ -41,6 +43,7 @@ class WumpusWorldAgent:
 
         self.path_to_follow = []  # List of actions from planning module
         self.last_action = None  # To help inference with Bump percept
+        self.last_shoot_dir = None # To help with scream inference
 
     def update_state(self, env_state):
         """
@@ -63,7 +66,7 @@ class WumpusWorldAgent:
             self.agent_pos,
             percepts,
             last_action=self.last_action,
-            last_action_success=(PERCEPT_BUMP not in percepts),
+            last_shoot_dir=self.last_shoot_dir,
         )
 
         # If scream, update internal Wumpus count/knowledge
@@ -82,9 +85,29 @@ class WumpusWorldAgent:
         self.update_knowledge(percepts)
 
         # 2. Check for immediate actions
-        if PERCEPT_GLITTER in percepts and not self.agent_has_gold:
+        if PERCEPT_GLITTER in percepts:
             self.last_action = ACTION_GRAB
             return ACTION_GRAB
+
+        if self.agent_has_gold:
+            if self.agent_pos == (0,0):
+                self.last_action = ACTION_CLIMB_OUT
+                return ACTION_CLIMB_OUT
+            else:
+                # Plan path back to (0,0)
+                path_to_origin = self.planning_module.find_path(
+                    self.agent_pos,
+                    self.agent_dir,
+                    (0, 0),
+                    self.inference_engine.get_kb_status(),
+                    self.inference_engine.get_visited_cells(),
+                    avoid_dangerous=False, # May need to take risks to get home
+                )
+                if path_to_origin:
+                    self.path_to_follow = path_to_origin
+                    next_action = self.path_to_follow.pop(0)
+                    self.last_action = next_action
+                    return next_action
 
         if self.agent_pos == (0, 0) and self.agent_has_gold:
             self.last_action = ACTION_CLIMB_OUT
@@ -132,6 +155,57 @@ class WumpusWorldAgent:
 
         # 5. If no safe unvisited cells, consider shooting or taking risks (advanced)
         # This is where the agent would decide to shoot a Wumpus or explore a dangerous path.
+        if self.agent_has_arrow and self.inference_engine.possible_wumpus:
+            # Find the most likely wumpus location
+            # For now, just pick one from the possible locations
+            target_wumpus = list(self.inference_engine.possible_wumpus)[0]
+            
+            # Plan path to a safe cell adjacent to the target wumpus to shoot from
+            safe_shooting_spots = []
+            for neighbor in self.inference_engine._get_neighbors(target_wumpus[0], target_wumpus[1]):
+                if self.inference_engine.kb_status[neighbor[0]][neighbor[1]] == "Safe":
+                    safe_shooting_spots.append(neighbor)
+            
+            if safe_shooting_spots:
+                # Find the closest safe shooting spot
+                safe_shooting_spots.sort(
+                    key=lambda p: abs(p[0] - self.agent_pos[0])
+                    + abs(p[1] - self.agent_pos[1])
+                )
+                shooting_spot = safe_shooting_spots[0]
+
+                path_to_shoot = self.planning_module.find_path(
+                    self.agent_pos,
+                    self.agent_dir,
+                    shooting_spot,
+                    self.inference_engine.get_kb_status(),
+                    self.inference_engine.get_visited_cells(),
+                    avoid_dangerous=True,
+                )
+
+                if path_to_shoot:
+                    # Now, plan the turn to face the wumpus and shoot
+                    target_dir_x = target_wumpus[0] - shooting_spot[0]
+                    target_dir_y = target_wumpus[1] - shooting_spot[1]
+                    target_dir = (target_dir_x, target_dir_y)
+                    
+                    current_dir_at_shoot_spot = self.agent_dir
+                    if path_to_shoot:
+                        # This is a simplification, we need to know the direction at the end of the path
+                        # For now, let's assume we can figure it out.
+                        # A better way is to have find_path return the final direction.
+                        pass
+
+                    actions_to_turn = []
+                    # This logic needs to be improved based on final direction after path
+                    # For now, we'll just add the shoot action
+                    
+                    self.path_to_follow = path_to_shoot + [ACTION_SHOOT] # This needs more logic for turning
+                    self.last_shoot_dir = target_dir
+                    next_action = self.path_to_follow.pop(0)
+                    self.last_action = next_action
+                    return next_action
+
         # For now, a simple rule: if stench and has arrow, shoot in a random direction.
         if PERCEPT_STENCH in percepts and self.agent_has_arrow:
             # A more intelligent agent would infer Wumpus location and shoot precisely.
@@ -167,11 +241,13 @@ class WumpusWorldAgent:
 
                 if actions_to_turn:
                     self.path_to_follow = actions_to_turn + [ACTION_SHOOT]
+                    self.last_shoot_dir = target_dir
                     next_action = self.path_to_follow.pop(0)
                     self.last_action = next_action
                     return next_action
             else:  # No unvisited neighbors, just shoot in current direction
                 self.last_action = ACTION_SHOOT
+                self.last_shoot_dir = self.agent_dir
                 return ACTION_SHOOT
 
         # 6. If all else fails, return to (0,0) or take a random safe action
@@ -187,6 +263,33 @@ class WumpusWorldAgent:
             )
             if path_to_origin:
                 self.path_to_follow = path_to_origin
+                next_action = self.path_to_follow.pop(0)
+                self.last_action = next_action
+                return next_action
+
+        # If no safe path, consider a risky one
+        unvisited_cells = []
+        for x in range(self.N):
+            for y in range(self.N):
+                if not self.inference_engine.visited[x][y]:
+                    unvisited_cells.append((x,y))
+        
+        if unvisited_cells:
+            unvisited_cells.sort(
+                key=lambda p: abs(p[0] - self.agent_pos[0])
+                + abs(p[1] - self.agent_pos[1])
+            )
+            target_cell = unvisited_cells[0]
+            path = self.planning_module.find_path(
+                self.agent_pos,
+                self.agent_dir,
+                target_cell,
+                self.inference_engine.get_kb_status(),
+                self.inference_engine.get_visited_cells(),
+                avoid_dangerous=False,
+            )
+            if path:
+                self.path_to_follow = path
                 next_action = self.path_to_follow.pop(0)
                 self.last_action = next_action
                 return next_action

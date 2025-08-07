@@ -44,13 +44,13 @@ DIRECTIONS = [NORTH, EAST, SOUTH, WEST]  # Order matters for turning
 DIRECTION_SYMBOLS = {NORTH: "^", EAST: ">", SOUTH: "v", WEST: "<"}
 
 # --- Scores ---
-SCORE_GRAB_GOLD = 10#[1]
-SCORE_MOVE_FORWARD = -1#[1]
-SCORE_TURN = -1#[1]  # Applies to both TurnLeft and TurnRight
-SCORE_SHOOT = -10#[1]
-SCORE_DIE = -1000#[1]  # Fall in pit or eaten by wumpus
-SCORE_CLIMB_OUT_WITH_GOLD = 1000#[1]
-SCORE_CLIMB_OUT_WITHOUT_GOLD = 0#[1]
+SCORE_GRAB_GOLD = 10
+SCORE_MOVE_FORWARD = -1
+SCORE_TURN = -1  # Applies to both TurnLeft and TurnRight
+SCORE_SHOOT = -10
+SCORE_DIE = -1000  # Fall in pit or eaten by wumpus
+SCORE_CLIMB_OUT_WITH_GOLD = 1000
+SCORE_CLIMB_OUT_WITHOUT_GOLD = 0
 
 # --- Game State ---
 GAME_STATE_PLAYING = "Playing"

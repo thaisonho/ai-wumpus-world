@@ -11,6 +11,19 @@ from utils.constants import (
 )
 
 
+def get_user_config():
+    """Gets simulation configuration from the user."""
+    try:
+        N = int(input(f"Enter grid size N (default: {N_DEFAULT}): ") or N_DEFAULT)
+        K = int(input(f"Enter number of Wumpuses K (default: {K_DEFAULT}): ") or K_DEFAULT)
+        p = float(input(f"Enter pit probability p (default: {P_DEFAULT}): ") or P_DEFAULT)
+        delay = float(input("Enter delay between steps (e.g., 0.2, default: 0.3): ") or 0.3)
+        return N, K, p, delay
+    except ValueError:
+        print("Invalid input. Using default values.")
+        return N_DEFAULT, K_DEFAULT, P_DEFAULT, 0.3
+
+
 def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3):
     """
     Runs a Wumpus World simulation with the intelligent agent.
@@ -103,4 +116,5 @@ def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3):
 
 
 if __name__ == "__main__":
-    run_simulation(N=8, K=2, p=0.2, delay=0.2)  # Reduced delay for faster simulation
+    N, K, p, delay = get_user_config()
+    run_simulation(N=N, K=K, p=p, delay=delay)
