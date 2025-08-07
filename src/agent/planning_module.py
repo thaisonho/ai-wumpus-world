@@ -28,6 +28,42 @@ class PlanningModule:
             return abs(SCORE_TURN)
         return 0  # Other actions like Grab, Shoot, ClimbOut don't have movement cost
 
+    import heapq
+from utils.constants import (
+    ACTION_MOVE_FORWARD,
+    ACTION_TURN_LEFT,
+    ACTION_TURN_RIGHT,
+    DIRECTIONS,
+    SCORE_MOVE_FORWARD,
+    SCORE_TURN,
+)
+
+
+class PlanningModule:
+    def __init__(self, N):
+        self.N = N
+
+    def _is_valid_coord(self, x, y):
+        """Checks if coordinates are within the map boundaries."""
+        return 0 <= x < self.N and 0 <= y < self.N
+
+    def _get_action_cost(self, action, cell_status):
+        """Calculates the cost of an action, including risk."""
+        cost = 0
+        if action == ACTION_MOVE_FORWARD:
+            cost = abs(SCORE_MOVE_FORWARD)
+        elif action in [ACTION_TURN_LEFT, ACTION_TURN_RIGHT]:
+            cost = abs(SCORE_TURN)
+
+        # Add a high penalty for entering dangerous or unknown cells.
+        # This makes the A* algorithm prefer safer paths.
+        if cell_status == "Dangerous":
+            cost += 100  # High risk penalty
+        elif cell_status == "Unknown":
+            cost += 10  # Moderate risk penalty for uncertainty
+
+        return cost
+
     def find_path(
         self,
         start_pos,
@@ -37,6 +73,84 @@ class PlanningModule:
         visited_cells,
         avoid_dangerous=True,
     ):
+        """
+        Finds the least-cost path from start to goal using A* search.
+        The path cost considers both movement cost and the risk of cells.
+        """
+        # The priority queue stores tuples of: (total_cost, path_cost, position, direction, action_path)
+        open_set = []
+        # The heuristic is the Manhattan distance to the goal.
+        h_cost = abs(start_pos[0] - goal_pos[0]) + abs(start_pos[1] - goal_pos[1])
+        heapq.heappush(open_set, (h_cost, 0, start_pos, start_dir, []))
+
+        # A dictionary to keep track of the lowest cost to reach a state (pos, dir).
+        g_costs = {(start_pos, start_dir): 0}
+        dir_to_idx = {dir_tuple: i for i, dir_tuple in enumerate(DIRECTIONS)}
+
+        while open_set:
+            _, g_cost, current_pos, current_dir, path = heapq.heappop(open_set)
+
+            if current_pos == goal_pos:
+                return path  # We found the goal.
+
+            # --- Explore possible actions from the current state ---
+
+            # 1. Move Forward
+            next_pos = (
+                current_pos[0] + current_dir[0],
+                current_pos[1] + current_dir[1],
+            )
+            if self._is_valid_coord(next_pos[0], next_pos[1]):
+                cell_status = kb_status[next_pos[0]][next_pos[1]]
+                if not (avoid_dangerous and cell_status == "Dangerous"):
+                    action = ACTION_MOVE_FORWARD
+                    new_g_cost = g_cost + self._get_action_cost(action, cell_status)
+
+                    if new_g_cost < g_costs.get((next_pos, current_dir), float("inf")):
+                        g_costs[(next_pos, current_dir)] = new_g_cost
+                        h_cost = abs(next_pos[0] - goal_pos[0]) + abs(
+                            next_pos[1] - goal_pos[1]
+                        )
+                        f_cost = new_g_cost + h_cost
+                        heapq.heappush(
+                            open_set,
+                            (
+                                f_cost,
+                                new_g_cost,
+                                next_pos,
+                                current_dir,
+                                path + [action],
+                            ),
+                        )
+
+            # 2. Turn Left & 3. Turn Right
+            current_dir_idx = dir_to_idx[current_dir]
+            for turn_action, turn_change in [
+                (ACTION_TURN_LEFT, -1),
+                (ACTION_TURN_RIGHT, 1),
+            ]:
+                new_dir_idx = (current_dir_idx + turn_change + len(DIRECTIONS)) % len(
+                    DIRECTIONS
+                )
+                new_dir = DIRECTIONS[new_dir_idx]
+
+                new_g_cost = g_cost + self._get_action_cost(
+                    turn_action, "Safe"
+                )  # Turns happen in a safe cell
+
+                if new_g_cost < g_costs.get((current_pos, new_dir), float("inf")):
+                    g_costs[(current_pos, new_dir)] = new_g_cost
+                    h_cost = abs(current_pos[0] - goal_pos[0]) + abs(
+                        current_pos[1] - goal_pos[1]
+                    )
+                    f_cost = new_g_cost + h_cost
+                    heapq.heappush(
+                        open_set,
+                        (f_cost, new_g_cost, current_pos, new_dir, path + [turn_action]),
+                    )
+
+        return None  # No path found
+
         """
         Finds a path from start_pos to goal_pos using A* search.
         Considers agent's current direction and costs of turning/moving.

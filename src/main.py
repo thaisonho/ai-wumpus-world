@@ -12,7 +12,7 @@ from utils.constants import (
 
 
 def get_user_config():
-    """Gets simulation configuration from the user."""
+    """Prompts the user for simulation settings."""
     try:
         N = int(input(f"Enter grid size N (default: {N_DEFAULT}): ") or N_DEFAULT)
         K = int(input(f"Enter number of Wumpuses K (default: {K_DEFAULT}): ") or K_DEFAULT)
@@ -20,61 +20,58 @@ def get_user_config():
         delay = float(input("Enter delay between steps (e.g., 0.2, default: 0.3): ") or 0.3)
         return N, K, p, delay
     except ValueError:
-        print("Invalid input. Using default values.")
+        print("Invalid input. Falling back to default values.")
         return N_DEFAULT, K_DEFAULT, P_DEFAULT, 0.3
 
 
 def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3):
     """
-    Runs a Wumpus World simulation with the intelligent agent.
-    @param N: Grid size.
-    :param K: Number of Wumpuses.
-    :param p: Pit probability.
-    :param delay: Delay between steps for visualization.
+    Initializes and runs a Wumpus World simulation.
+
+    Args:
+        N (int): The size of the grid (N x N).
+        K (int): The number of Wumpuses.
+        p (float): The probability of a pit in any given cell.
+        delay (float): The delay in seconds between simulation steps for visualization.
     """
     env = WumpusWorldEnvironment(N, K, p)
-    agent = WumpusWorldAgent(N)  # Instantiate the intelligent agent
+    agent = WumpusWorldAgent(N)
     display = WumpusWorldDisplay(N)
 
     step_count = 0
-    max_steps = 500  # Increased max steps for intelligent agent
+    max_steps = 500  # A safeguard against infinite loops.
 
+    # Main game loop
     while env.game_state == GAME_STATE_PLAYING and step_count < max_steps:
         step_count += 1
 
-        # Get current percepts from the environment
+        # 1. Agent perceives the environment
         current_percepts = env.get_percepts()
-
-        # Sync agent's basic state with environment
         env_state = env.get_current_state()
         agent.update_state(env_state)
 
-        # Display the current state, including agent's KB
+        # 2. Display the world from the agent's perspective before acting
         display.display_map(
-            agent_known_map=agent.get_known_map(),  # Pass agent's known map
-            agent_kb_status=agent.get_kb_status(),  # Pass agent's KB status
+            agent_known_map=agent.get_known_map(),
+            agent_kb_status=agent.get_kb_status(),
             agent_pos=agent.agent_pos,
             agent_dir=agent.agent_dir,
             agent_has_gold=agent.agent_has_gold,
             score=agent.score,
             percepts=current_percepts,
-            message=f"Step {step_count}: Agent is deciding...",
+            message=f"Step {step_count}: Agent is thinking...",
         )
         display.pause(delay)
 
-        # Agent decides action based on percepts and its internal KB
+        # 3. Agent makes a decision
         chosen_action = agent.decide_action(current_percepts)
 
-        # Apply the chosen action to the environment
+        # 4. The environment processes the action
         action_message = env.apply_action(chosen_action)
 
-        # Display the state after action
-        env_state = (
-            env.get_current_state()
-        )  # Get updated env state for final display of this turn
-        agent.update_state(
-            env_state
-        )  # Sync agent's state one last time for display consistency
+        # 5. Sync the agent's state and display the result of the action
+        env_state = env.get_current_state()
+        agent.update_state(env_state)
 
         display.display_map(
             agent_known_map=agent.get_known_map(),
@@ -83,21 +80,22 @@ def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3):
             agent_dir=agent.agent_dir,
             agent_has_gold=agent.agent_has_gold,
             score=agent.score,
-            percepts=env.last_percepts,  # Use env's last_percepts which includes Bump if it happened
-            message=f"Step {step_count}: Action: {chosen_action}. Outcome: {action_message}",
+            percepts=env.last_percepts,  # Use last_percepts to include bumps
+            message=f"Step {step_count}: Action: {chosen_action}. Result: {action_message}",
         )
         display.pause(delay)
 
-    # Final display after game ends
+    # --- Game Over ---
+    # Final sync and display
     env_state = env.get_current_state()
-    agent.update_state(env_state)  # Final sync
-    final_message = ""
+    agent.update_state(env_state)
+
     if env_state["game_state"] == GAME_STATE_WON:
-        final_message = "Simulation Ended: Agent WON!"
+        final_message = "Simulation Ended: The agent won!"
     elif env_state["game_state"] == GAME_STATE_LOST:
-        final_message = "Simulation Ended: Agent LOST!"
+        final_message = "Simulation Ended: The agent lost."
     else:
-        final_message = "Simulation Ended: Max steps reached."
+        final_message = "Simulation Ended: Maximum steps reached."
 
     display.display_map(
         agent_known_map=agent.get_known_map(),
@@ -112,7 +110,7 @@ def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3):
     print(f"\nFinal Score: {env_state['score']}")
     print(f"Game State: {env_state['game_state']}")
     print("Press Enter to exit.")
-    input()  # Keep the final display on screen until user presses Enter
+    input()  # Wait for user confirmation to close
 
 
 if __name__ == "__main__":

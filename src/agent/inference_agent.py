@@ -21,18 +21,161 @@ class InferenceEngine:
     def __init__(self, N=N_DEFAULT, K=1):
         self.N = N
         self.K = K
-        self.known_wumpus_count = K
+        self.known_wumpus_count = K # Agent knows how many Wumpuses are alive
 
-        # KB stores facts about cells: 'W', 'P', '-W', '-P', 'S' (Safe)
+        # The Knowledge Base (KB) stores facts about each cell.
+        # This is a simplified version. A full implementation would use
+        # propositional logic sentences (e.g., using a custom class for clauses).
+        # Example facts: 'W' (is Wumpus), '-P' (is not Pit), 'S' (is Safe).
         self.kb = [[set() for _ in range(self.N)] for _ in range(self.N)]
-
-        # Inferred status for display and planning
+        
+        # This map stores the agent's inferred status for planning and display.
         self.kb_status = [["Unknown" for _ in range(self.N)] for _ in range(self.N)]
         self.visited = [[False for _ in range(self.N)] for _ in range(self.N)]
 
-        # Initialize KB for starting cell
-        self.kb[0][0].add("S")  # Safe
+        # The starting cell (0,0) is always safe.
         self.kb_status[0][0] = "Safe"
+        self.kb[0][0].add("S")
+
+    def _is_valid_coord(self, x, y):
+        """Checks if coordinates are within the map boundaries."""
+        return 0 <= x < self.N and 0 <= y < self.N
+
+    def _get_neighbors(self, x, y):
+        """Gets all valid neighbor coordinates for a given cell."""
+        neighbors = []
+        for dx, dy in DIRECTIONS:
+            nx, ny = x + dx, y + dy
+            if self._is_valid_coord(nx, ny):
+                neighbors.append((nx, ny))
+        return neighbors
+
+    def update_knowledge(self, current_pos, percepts, last_action=None, last_shoot_dir=None):
+        """
+        Updates the KB based on new percepts. This process is a form of inference,
+        where new facts are derived from existing ones and new evidence.
+        A full implementation would use a forward chaining or resolution algorithm.
+        """
+        x, y = current_pos
+
+        # Mark the current cell as visited and definitely safe.
+        if not self.visited[x][y]:
+            self.visited[x][y] = True
+            self.kb_status[x][y] = "Visited"
+            self.kb[x][y].add("S") # Add "is Safe" to the KB
+
+        # --- Inference from Percepts ---
+
+        # If we hear a scream, a Wumpus is dead.
+        if PERCEPT_SCREAM in percepts:
+            self.known_wumpus_count -= 1
+            # If we know which way we shot, we can deduce the Wumpus's location.
+            if last_shoot_dir:
+                shot_x, shot_y = x + last_shoot_dir[0], y + last_shoot_dir[1]
+                while self._is_valid_coord(shot_x, shot_y):
+                    # The first unvisited/unknown cell in the line of fire is the dead Wumpus.
+                    if self.kb_status[shot_x][shot_y] != "Visited":
+                        self.kb[shot_x][shot_y].add("-W") # No more Wumpus here
+                        self.kb[shot_x][shot_y].add("S")  # It's now safe
+                        self.kb_status[shot_x][shot_y] = "Safe"
+                        break
+                    shot_x, shot_y = shot_x + last_shoot_dir[0], shot_y + last_shoot_dir[1]
+
+        # If we bump, we know the boundaries (though N is known).
+        if PERCEPT_BUMP in percepts and last_action == ACTION_MOVE_FORWARD:
+            # This could be used to infer walls if N were unknown.
+            pass
+
+        # --- Propositional Logic Rules ---
+        # For each neighbor, update knowledge based on Stench and Breeze.
+        neighbors = self._get_neighbors(x, y)
+
+        # Rule: No Stench => All neighbors are not Wumpuses.
+        if PERCEPT_STENCH not in percepts:
+            for nx, ny in neighbors:
+                self.kb[nx][ny].add("-W")
+        # Rule: Stench => At least one neighbor is a Wumpus.
+        # (W1 v W2 v ... v Wn). This requires more complex reasoning (e.g., model checking).
+        else:
+            # For now, we can mark unvisited neighbors with a potential Wumpus.
+            for nx, ny in neighbors:
+                if not self.visited[nx][ny]:
+                    self.kb[nx][ny].add(WUMPUS_SYMBOL) # Tentative
+
+        # Rule: No Breeze => All neighbors are not Pits.
+        if PERCEPT_BREEZE not in percepts:
+            for nx, ny in neighbors:
+                self.kb[nx][ny].add("-P")
+        # Rule: Breeze => At least one neighbor is a Pit.
+        # (P1 v P2 v ... v Pn).
+        else:
+            # Mark unvisited neighbors with a potential Pit.
+            for nx, ny in neighbors:
+                if not self.visited[nx][ny]:
+                    self.kb[nx][ny].add(PIT_SYMBOL) # Tentative
+
+        # --- Re-evaluate all cells based on new KB facts ---
+        self._update_all_cell_statuses()
+
+    def _update_all_cell_statuses(self):
+        """
+        Iterates through the entire grid and updates the high-level status
+        ('Safe', 'Dangerous', 'Unknown') based on the facts in the KB.
+        """
+        for x in range(self.N):
+            for y in range(self.N):
+                if self.visited[x][y]:
+                    self.kb_status[x][y] = "Visited"
+                    continue
+
+                facts = self.kb[x][y]
+                # A cell is confirmed safe if we know there's no Wumpus AND no Pit.
+                if "-W" in facts and "-P" in facts:
+                    self.kb_status[x][y] = "Safe"
+                # A cell is confirmed dangerous if we know there's a Wumpus OR a Pit.
+                elif "W" in facts or "P" in facts:
+                     self.kb_status[x][y] = "Dangerous"
+                # Otherwise, it remains unknown.
+
+    def get_known_map(self):
+        """Returns the map of things the agent knows for sure (W, P, G)."""
+        known_map = [[set() for _ in range(self.N)] for _ in range(self.N)]
+        for r in range(self.N):
+            for c in range(self.N):
+                # This part is for visualization, showing inferred elements.
+                if WUMPUS_SYMBOL in self.kb[r][c]:
+                    known_map[r][c].add(WUMPUS_SYMBOL)
+                if PIT_SYMBOL in self.kb[r][c]:
+                    known_map[r][c].add(PIT_SYMBOL)
+                if GOLD_SYMBOL in self.kb[r][c]:
+                    known_map[r][c].add(GOLD_SYMBOL)
+        return known_map
+
+    def get_kb_status(self):
+        """Returns the high-level status map for the planner."""
+        return self.kb_status
+
+    def get_visited_cells(self):
+        return self.visited
+
+    def get_safe_unvisited_cells(self):
+        """Returns a list of cells that are inferred to be safe but not yet visited."""
+        safe_cells = []
+        for x in range(self.N):
+            for y in range(self.N):
+                if self.kb_status[x][y] == "Safe" and not self.visited[x][y]:
+                    safe_cells.append((x, y))
+        return safe_cells
+    
+    def get_possible_wumpus_locations(self):
+        """Returns cells that might contain a Wumpus."""
+        possible_wumpus = []
+        for x in range(self.N):
+            for y in range(self.N):
+                # A cell could have a wumpus if it's not confirmed safe and not confirmed no-wumpus
+                if self.kb_status[x][y] == "Unknown" and "-W" not in self.kb[x][y]:
+                    possible_wumpus.append((x,y))
+        return possible_wumpus
 
     def _is_valid_coord(self, x, y):
         return 0 <= x < self.N and 0 <= y < self.N

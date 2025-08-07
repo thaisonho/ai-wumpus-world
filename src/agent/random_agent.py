@@ -17,7 +17,8 @@ class RandomAgent:
 
     def decide_action(self, percepts):
         """
-        Decides an action randomly from the set of possible actions.
+        A simple agent that chooses an action randomly.
+        It doesn't use percepts to make intelligent decisions.
         """
         possible_actions = [
             ACTION_MOVE_FORWARD,
@@ -26,6 +27,7 @@ class RandomAgent:
             ACTION_GRAB,
             ACTION_CLIMB_OUT,
         ]
+        # The agent can only shoot if it has an arrow.
         if self.agent_has_arrow:
             possible_actions.append(ACTION_SHOOT)
         
@@ -33,7 +35,15 @@ class RandomAgent:
 
     def update_state(self, env_state):
         """
-        Updates the agent's state. For the random agent, we only need to know
-        if it has an arrow.
+        Syncs the agent's state with the environment.
+        For this simple agent, we only care about whether it has an arrow.
         """
         self.agent_has_arrow = env_state["agent_has_arrow"]
+        
+    def get_known_map(self):
+        """The random agent doesn't build a map."""
+        return [[set() for _ in range(self.N)] for _ in range(self.N)]
+
+    def get_kb_status(self):
+        """The random agent doesn't have a knowledge base."""
+        return [["Unknown" for _ in range(self.N)] for _ in range(self.N)]
