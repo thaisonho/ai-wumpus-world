@@ -1,285 +1,200 @@
-import heapq  # For A* priority queue
+# src/agent/planning_module.py
+from .agent_goal import AgentGoal
 from utils.constants import (
-    NORTH,
-    EAST,
-    SOUTH,
-    WEST,
-    DIRECTIONS,
-    ACTION_MOVE_FORWARD,
-    ACTION_TURN_LEFT,
-    ACTION_TURN_RIGHT,
-    SCORE_MOVE_FORWARD,
-    SCORE_TURN,
+    ACTION_GRAB, ACTION_SHOOT, ACTION_CLIMB_OUT,
+    ACTION_TURN_LEFT, ACTION_TURN_RIGHT, DIRECTIONS,
 )
-
-
-class PlanningModule:
-    def __init__(self, N):
-        self.N = N
-
-    def _is_valid_coord(self, x, y):
-        return 0 <= x < self.N and 0 <= y < self.N
-
-    def _get_cost(self, action):
-        """Returns the cost of an action."""
-        if action == ACTION_MOVE_FORWARD:
-            return abs(SCORE_MOVE_FORWARD)
-        elif action in [ACTION_TURN_LEFT, ACTION_TURN_RIGHT]:
-            return abs(SCORE_TURN)
-        return 0  # Other actions like Grab, Shoot, ClimbOut don't have movement cost
-
-    import heapq
-from utils.constants import (
-    ACTION_MOVE_FORWARD,
-    ACTION_TURN_LEFT,
-    ACTION_TURN_RIGHT,
-    DIRECTIONS,
-    SCORE_MOVE_FORWARD,
-    SCORE_TURN,
+from .knowledge_base import (
+    F_WUMPUS, F_DEAD_WUMPUS, F_POSSIBLE_WUMPUS, 
+    F_HAS_STENCH, F_HAS_BREEZE
 )
+import random
 
+class StrategicPlanner:
+    """
+    Responsible for converting a high-level strategic goal (AgentGoal) 
+    into a low-level action plan (a list of actions).
+    It uses a central decision-making function (_plan_to_get_unstuck) 
+    when the agent is trapped to choose the least-worst option.
+    """
+    def __init__(self, pathfinding_module):
+        self.pathfinder = pathfinding_module
 
-class PlanningModule:
-    def __init__(self, N):
-        self.N = N
-
-    def _is_valid_coord(self, x, y):
-        """Checks if coordinates are within the map boundaries."""
-        return 0 <= x < self.N and 0 <= y < self.N
-
-    def _get_action_cost(self, action, cell_status):
-        """Calculates the cost of an action, including risk."""
-        cost = 0
-        if action == ACTION_MOVE_FORWARD:
-            cost = abs(SCORE_MOVE_FORWARD)
-        elif action in [ACTION_TURN_LEFT, ACTION_TURN_RIGHT]:
-            cost = abs(SCORE_TURN)
-
-        # Add a high penalty for entering dangerous or unknown cells.
-        # This makes the A* algorithm prefer safer paths.
-        if cell_status == "Dangerous":
-            cost += 100  # High risk penalty
-        elif cell_status == "Unknown":
-            cost += 10  # Moderate risk penalty for uncertainty
-
-        return cost
-
-    def find_path(
-        self,
-        start_pos,
-        start_dir,
-        goal_pos,
-        kb_status,
-        visited_cells,
-        avoid_dangerous=True,
-    ):
+    def create_plan(self, agent, goal):
         """
-        Finds the least-cost path from start to goal using A* search.
-        The path cost considers both movement cost and the risk of cells.
+        The main method that generates a plan based on the agent's current goal.
         """
-        # The priority queue stores tuples of: (total_cost, path_cost, position, direction, action_path)
-        open_set = []
-        # The heuristic is the Manhattan distance to the goal.
-        h_cost = abs(start_pos[0] - goal_pos[0]) + abs(start_pos[1] - goal_pos[1])
-        heapq.heappush(open_set, (h_cost, 0, start_pos, start_dir, []))
+        if goal == AgentGoal.RETURN_HOME:
+            return self._plan_return_home(agent)
+        elif goal == AgentGoal.EXPLORE_SAFELY:
+            return self._plan_explore_safely(agent)
+        elif goal == AgentGoal.GET_UNSTUCK:
+            return self._plan_to_get_unstuck(agent)
+        elif goal == AgentGoal.ESCAPE:
+            return self._plan_escape(agent)
+        # Other goals like SHOOT_WUMPUS are now handled within GET_UNSTUCK
+        return None
 
-        # A dictionary to keep track of the lowest cost to reach a state (pos, dir).
-        g_costs = {(start_pos, start_dir): 0}
-        dir_to_idx = {dir_tuple: i for i, dir_tuple in enumerate(DIRECTIONS)}
+    def _plan_return_home(self, agent):
+        """Plans a path back to (0,0) to climb out."""
+        if agent.agent_pos == (0, 0):
+            return [ACTION_CLIMB_OUT]
+        kb_status = agent.inference_module.get_kb_status()
+        # When returning home, the agent can traverse known dangerous cells (e.g., a dead wumpus location).
+        return self.pathfinder.find_path(agent.agent_pos, agent.agent_dir, (0, 0), kb_status, avoid_dangerous=False)
 
-        while open_set:
-            _, g_cost, current_pos, current_dir, path = heapq.heappop(open_set)
-
-            if current_pos == goal_pos:
-                return path  # We found the goal.
-
-            # --- Explore possible actions from the current state ---
-
-            # 1. Move Forward
-            next_pos = (
-                current_pos[0] + current_dir[0],
-                current_pos[1] + current_dir[1],
-            )
-            if self._is_valid_coord(next_pos[0], next_pos[1]):
-                cell_status = kb_status[next_pos[0]][next_pos[1]]
-                if not (avoid_dangerous and cell_status == "Dangerous"):
-                    action = ACTION_MOVE_FORWARD
-                    new_g_cost = g_cost + self._get_action_cost(action, cell_status)
-
-                    if new_g_cost < g_costs.get((next_pos, current_dir), float("inf")):
-                        g_costs[(next_pos, current_dir)] = new_g_cost
-                        h_cost = abs(next_pos[0] - goal_pos[0]) + abs(
-                            next_pos[1] - goal_pos[1]
-                        )
-                        f_cost = new_g_cost + h_cost
-                        heapq.heappush(
-                            open_set,
-                            (
-                                f_cost,
-                                new_g_cost,
-                                next_pos,
-                                current_dir,
-                                path + [action],
-                            ),
-                        )
-
-            # 2. Turn Left & 3. Turn Right
-            current_dir_idx = dir_to_idx[current_dir]
-            for turn_action, turn_change in [
-                (ACTION_TURN_LEFT, -1),
-                (ACTION_TURN_RIGHT, 1),
-            ]:
-                new_dir_idx = (current_dir_idx + turn_change + len(DIRECTIONS)) % len(
-                    DIRECTIONS
-                )
-                new_dir = DIRECTIONS[new_dir_idx]
-
-                new_g_cost = g_cost + self._get_action_cost(
-                    turn_action, "Safe"
-                )  # Turns happen in a safe cell
-
-                if new_g_cost < g_costs.get((current_pos, new_dir), float("inf")):
-                    g_costs[(current_pos, new_dir)] = new_g_cost
-                    h_cost = abs(current_pos[0] - goal_pos[0]) + abs(
-                        current_pos[1] - goal_pos[1]
-                    )
-                    f_cost = new_g_cost + h_cost
-                    heapq.heappush(
-                        open_set,
-                        (f_cost, new_g_cost, current_pos, new_dir, path + [turn_action]),
-                    )
-
-        return None  # No path found
-
-        """
-        Finds a path from start_pos to goal_pos using A* search.
-        Considers agent's current direction and costs of turning/moving.
-
-        :param start_pos: (x, y) tuple of the agent's starting position.
-        :param start_dir: (dx, dy) tuple of the agent's starting direction.
-        :param goal_pos: (x, y) tuple of the target position.
-        :param kb_status: 2D list of agent's inferred cell statuses ('Safe', 'Dangerous', 'Unknown').
-        :param visited_cells: 2D boolean list of visited cells.
-        :param avoid_dangerous: If True, avoids 'Dangerous' cells. If False, allows them (e.g., for shooting).
-        :return: A list of actions to reach the goal, or None if no path found.
-        """
-        # Priority queue: (f_cost, g_cost, (x,y), (dx,dy), path_actions)
-        # f_cost = g_cost + h_cost
-        # g_cost = cost from start to current node
-        # h_cost = heuristic (Manhattan distance to goal)
-        # (x,y) = current position
-        # (dx,dy) = current direction
-        # path_actions = list of actions taken to reach this state
-
-        # State in closed_set: ((x,y), (dx,dy))
-        # This prevents cycles and re-exploring states with higher cost
-        open_set = []
-        heapq.heappush(open_set, (0, 0, start_pos, start_dir, []))
-
-        # g_costs: stores the lowest g_cost to reach a state ((x,y), (dx,dy))
-        g_costs = {(start_pos, start_dir): 0}
-
-        # Convert direction tuple to index for easier turning logic
-        dir_to_idx = {dir_tuple: i for i, dir_tuple in enumerate(DIRECTIONS)}
-        start_dir_idx = dir_to_idx[start_dir]
-
-        while open_set:
-            f_cost, g_cost, current_pos, current_dir, path_actions = heapq.heappop(
-                open_set
-            )
-            current_dir_idx = dir_to_idx[current_dir]
-
-            # If we reached the goal
-            if current_pos == goal_pos:
-                return path_actions
-
-            # Check if we've found a better path to this state already
-            if g_cost > g_costs.get((current_pos, current_dir), float("inf")):
-                continue
-
-            # Explore neighbors
-            # 1. Try moving forward
-            move_dx, move_dy = current_dir
-            next_x, next_y = current_pos[0] + move_dx, current_pos[1] + move_dy
-
-            if self._is_valid_coord(next_x, next_y):
-                # Check if the next cell is safe or allowed
-                is_safe = kb_status[next_x][next_y] == "Safe"
-                is_visited = visited_cells[next_x][next_y]
-                is_dangerous = kb_status[next_x][next_y] == "Dangerous"
-                is_unknown = kb_status[next_x][next_y] == "Unknown"
-
-                # Allow moving into dangerous cells if avoid_dangerous is False
-                # Always allow moving into visited cells (they are safe)
-                if is_safe or is_visited or not avoid_dangerous:
-                    risk_cost = 0
-                    if not avoid_dangerous:
-                        if is_dangerous:
-                            risk_cost = 100  # High cost for dangerous cells
-                        elif is_unknown:
-                            risk_cost = 10 # Moderate cost for unknown cells
-                    
-                    new_g_cost = g_cost + self._get_cost(ACTION_MOVE_FORWARD) + risk_cost
-                    if new_g_cost < g_costs.get(
-                        ((next_x, next_y), current_dir), float("inf")
-                    ):
-                        g_costs[((next_x, next_y), current_dir)] = new_g_cost
-                        h_cost = abs(next_x - goal_pos[0]) + abs(
-                            next_y - goal_pos[1]
-                        )  # Manhattan distance
-                        heapq.heappush(
-                            open_set,
-                            (
-                                new_g_cost + h_cost,
-                                new_g_cost,
-                                (next_x, next_y),
-                                current_dir,
-                                path_actions + [ACTION_MOVE_FORWARD],
-                            ),
-                        )
+    def _plan_explore_safely(self, agent):
+        """Plans a path to explore the nearest unvisited safe cells."""
+        kb_status = agent.inference_module.get_kb_status()
+        visited_cells = agent.inference_module.get_visited_cells()
+        safe_unvisited_cells = [(x, y) for x in range(agent.N) for y in range(agent.N) if kb_status[x][y] == "Safe" and not visited_cells[x][y]]
+        
+        if not safe_unvisited_cells:
+            return None
             
-            # 2. Try turning left
-            next_dir_idx_left = (current_dir_idx - 1 + len(DIRECTIONS)) % len(DIRECTIONS)
-            next_dir_left = DIRECTIONS[next_dir_idx_left]
-            new_g_cost_left = g_cost + self._get_cost(ACTION_TURN_LEFT)
-            if new_g_cost_left < g_costs.get(
-                (current_pos, next_dir_left), float("inf")
-            ):
-                g_costs[(current_pos, next_dir_left)] = new_g_cost_left
-                h_cost = abs(current_pos[0] - goal_pos[0]) + abs(
-                    current_pos[1] - goal_pos[1]
-                )  # Manhattan distance
-                heapq.heappush(
-                    open_set,
-                    (
-                        new_g_cost_left + h_cost,
-                        new_g_cost_left,
-                        current_pos,
-                        next_dir_left,
-                        path_actions + [ACTION_TURN_LEFT],
-                    ),
-                )
+        # Sort safe cells by Manhattan distance to prioritize the closest ones.
+        safe_unvisited_cells.sort(key=lambda p: abs(p[0] - agent.agent_pos[0]) + abs(p[1] - agent.agent_pos[1]))
+        
+        for target in safe_unvisited_cells:
+            # Find a path that avoids all known and suspected dangers.
+            path = self.pathfinder.find_path(agent.agent_pos, agent.agent_dir, target, kb_status, avoid_dangerous=True)
+            if path:
+                return path
+        return None
 
-            # 3. Try turning right
-            next_dir_idx_right = (current_dir_idx + 1) % len(DIRECTIONS)
-            next_dir_right = DIRECTIONS[next_dir_idx_right]
-            new_g_cost_right = g_cost + self._get_cost(ACTION_TURN_RIGHT)
-            if new_g_cost_right < g_costs.get(
-                (current_pos, next_dir_right), float("inf")
-            ):
-                g_costs[(current_pos, next_dir_right)] = new_g_cost_right
-                h_cost = abs(current_pos[0] - goal_pos[0]) + abs(
-                    current_pos[1] - goal_pos[1]
-                )  # Manhattan distance
-                heapq.heappush(
-                    open_set,
-                    (
-                        new_g_cost_right + h_cost,
-                        new_g_cost_right,
-                        current_pos,
-                        next_dir_right,
-                        path_actions + [ACTION_TURN_RIGHT],
-                    ),
-                )
+    def _plan_escape(self, agent):
+        """The last resort plan: try to get back to (0,0) at all costs."""
+        if agent.agent_pos == (0, 0):
+            return [ACTION_CLIMB_OUT]
+        kb_status = agent.inference_module.get_kb_status()
+        # Accept risks to escape.
+        return self.pathfinder.find_path(agent.agent_pos, agent.agent_dir, (0, 0), kb_status, avoid_dangerous=False)
 
-        return None  # No path found
+    def _plan_to_get_unstuck(self, agent):
+        """
+        The supreme decision-making function for when the agent is trapped.
+        It evaluates all possible options (shooting or taking a risky move)
+        and selects the one with the highest "utility score".
+        This forces the agent to compare shooting vs. moving instead of just trying one after the other.
+        """
+        options = []
+        kb = agent.inference_module.kb
+        kb_status = agent.inference_module.get_kb_status()
+
+        # --- 1. GATHER ALL POSSIBLE SHOOTING OPTIONS ---
+        if agent.agent_has_arrow:
+            potential_targets = []
+            for x in range(agent.N):
+                for y in range(agent.N):
+                    pos = (x, y)
+                    facts = kb.get_facts(pos)
+                    # A target is a cell that is confirmed or possibly a Wumpus, and not yet dead.
+                    if (F_WUMPUS in facts or F_POSSIBLE_WUMPUS in facts) and F_DEAD_WUMPUS not in facts:
+                        potential_targets.append(pos)
+            
+            for target in potential_targets:
+                # Find safe shooting spots adjacent to the target.
+                neighbors = kb.get_neighbors(target)
+                safe_spots = [n for n in neighbors if kb_status[n[0]][n[1]] in ["Safe", "Visited"]]
+                for spot in safe_spots:
+                    path = self.pathfinder.find_path(agent.agent_pos, agent.agent_dir, spot, kb_status, avoid_dangerous=True)
+                    if path:
+                        # Calculate a utility score for this shooting action.
+                        utility = 0
+                        if F_WUMPUS in kb.get_facts(target):
+                            utility += 100  # High reward for a confirmed target.
+                        else:  # F_POSSIBLE_WUMPUS
+                            # Reward based on the number of Stench clues pointing to it.
+                            utility += 10 * self._calculate_wumpus_likelihood_score(agent, target)
+                        
+                        utility -= len(path)  # Subtract the cost of travel.
+                        options.append((utility, "shoot", (target, spot)))
+
+        # --- 2. GATHER ALL RISKY MOVE OPTIONS ---
+        unknown_cells = [(x, y) for x in range(agent.N) for y in range(agent.N) if kb_status[x][y] == "Unknown"]
+        for target in unknown_cells:
+            # Find a path that accepts risk.
+            path = self.pathfinder.find_path(agent.agent_pos, agent.agent_dir, target, kb_status, avoid_dangerous=False)
+            if path:
+                # Calculate the utility (always negative) for this risky move.
+                threat_score = self._calculate_threat_score(agent, target)
+                utility = -50  # A large default penalty for taking a risk.
+                utility -= 20 * threat_score  # Add penalties based on surrounding threats (Breeze, Stench).
+                utility -= len(path)  # Subtract the cost of travel.
+                options.append((utility, "move", path))
+
+        # --- 3. COMPARE OPTIONS AND MAKE A DECISION ---
+        if not options:
+            return None  # Truly no options left.
+
+        # Sort options by utility score in descending order.
+        options.sort(key=lambda x: x[0], reverse=True)
+
+        best_option = options[0]
+        _, action_type, details = best_option
+
+        if action_type == "shoot":
+            # Construct the full shooting plan from the saved details.
+            wumpus_pos, shooting_spot = details
+            path_to_spot = self.pathfinder.find_path(agent.agent_pos, agent.agent_dir, shooting_spot, kb_status, avoid_dangerous=True)
+            
+            if not path_to_spot: return None # Safety check.
+
+            # Logic to turn and face the target.
+            final_agent_dir = agent.agent_dir
+            dir_idx = DIRECTIONS.index(agent.agent_dir)
+            for action in path_to_spot:
+                if action == ACTION_TURN_LEFT: dir_idx = (dir_idx - 1 + 4) % 4
+                if action == ACTION_TURN_RIGHT: dir_idx = (dir_idx + 1) % 4
+            final_agent_dir = DIRECTIONS[dir_idx]
+            
+            turns = []
+            target_dir_vec = (wumpus_pos[0] - shooting_spot[0], wumpus_pos[1] - shooting_spot[1])
+            if target_dir_vec not in DIRECTIONS: return None # Invalid shooting vector.
+
+            while final_agent_dir != target_dir_vec:
+                current_idx, target_idx = DIRECTIONS.index(final_agent_dir), DIRECTIONS.index(target_dir_vec)
+                # Compare to find the shortest turn direction.
+                if (target_idx - current_idx + 4) % 4 < (current_idx - target_idx + 4) % 4:
+                    turns.append(ACTION_TURN_RIGHT)
+                    final_agent_dir = DIRECTIONS[(current_idx + 1) % 4]
+                else:
+                    turns.append(ACTION_TURN_LEFT)
+                    final_agent_dir = DIRECTIONS[(current_idx - 1 + 4) % 4]
+            
+            agent.last_shoot_dir = target_dir_vec # Crucial for processing the Scream percept.
+            return path_to_spot + turns + [ACTION_SHOOT]
+
+        elif action_type == "move":
+            # The movement plan is already contained in 'details'.
+            return details
+            
+        return None
+
+    def _calculate_threat_score(self, agent, pos):
+        """Calculates a threat score for an unknown cell based on percepts in neighboring cells."""
+        score = 0
+        kb = agent.inference_module.kb
+        for neighbor in kb.get_neighbors(pos):
+            # Check adjacent cells that have been visited.
+            if kb.visited[neighbor[0]][neighbor[1]]:
+                facts = kb.get_facts(neighbor)
+                if F_HAS_STENCH in facts: score += 1
+                if F_HAS_BREEZE in facts: score += 1
+        return score
+
+    def _calculate_wumpus_likelihood_score(self, agent, pos):
+        """
+        Calculates a simple heuristic score for the likelihood of a Wumpus at 'pos'.
+        The score is based on the number of adjacent, visited cells that have a stench.
+        """
+        score = 0
+        kb = agent.inference_module.kb
+        # Look at the neighbors of the suspected cell 'pos'.
+        for neighbor_of_pos in kb.get_neighbors(pos):
+            # If we have visited that neighbor...
+            if kb.visited[neighbor_of_pos[0]][neighbor_of_pos[1]]:
+                # ...and that neighbor has the 'HasStench' fact...
+                if F_HAS_STENCH in kb.get_facts(neighbor_of_pos):
+                    score += 1  # ...increase the confidence score.
+        return score
