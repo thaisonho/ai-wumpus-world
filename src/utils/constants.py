@@ -56,3 +56,7 @@ SCORE_CLIMB_OUT_WITHOUT_GOLD = 0 # No points for giving up
 GAME_STATE_PLAYING = "Playing"
 GAME_STATE_WON = "Won"
 GAME_STATE_LOST = "Lost"
+
+# --- Advanced / Moving Wumpus ---
+# After every WUMPUS_MOVE_INTERVAL agent actions, each Wumpus moves 1 step.
+WUMPUS_MOVE_INTERVAL = 5
