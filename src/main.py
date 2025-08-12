@@ -1,4 +1,5 @@
 from environment.environment import WumpusWorldEnvironment
+from environment.advanced_environment import AdvancedWumpusWorldEnvironment
 from agent.agent import WumpusWorldAgent  # Import the intelligent agent
 from utils.display import WumpusWorldDisplay
 from utils.constants import (
@@ -18,13 +19,14 @@ def get_user_config():
         K = int(input(f"Enter number of Wumpuses K (default: {K_DEFAULT}): ") or K_DEFAULT)
         p = float(input(f"Enter pit probability p (default: {P_DEFAULT}): ") or P_DEFAULT)
         delay = float(input("Enter delay between steps (e.g., 0.2, default: 0.3): ") or 0.3)
-        return N, K, p, delay
+        moving = input("Enable moving Wumpus? (y/N): ").strip().lower() in {"y", "yes"}
+        return N, K, p, delay, moving
     except ValueError:
         print("Invalid input. Falling back to default values.")
         return N_DEFAULT, K_DEFAULT, P_DEFAULT, 0.3
 
 
-def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3):
+def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3, moving_wumpus=False):
     """
     Initializes and runs a Wumpus World simulation.
 
@@ -34,7 +36,8 @@ def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3):
         p (float): The probability of a pit in any given cell.
         delay (float): The delay in seconds between simulation steps for visualization.
     """
-    env = WumpusWorldEnvironment(N, K, p)
+    EnvClass = AdvancedWumpusWorldEnvironment if moving_wumpus else WumpusWorldEnvironment
+    env = EnvClass(N, K, p)
     agent = WumpusWorldAgent(N)
     display = WumpusWorldDisplay(N)
 
@@ -114,5 +117,5 @@ def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3):
 
 
 if __name__ == "__main__":
-    N, K, p, delay = get_user_config()
-    run_simulation(N=N, K=K, p=p, delay=delay)
+    N, K, p, delay, moving = get_user_config()
+    run_simulation(N=N, K=K, p=p, delay=delay, moving_wumpus=moving)
