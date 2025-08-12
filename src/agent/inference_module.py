@@ -1,344 +1,268 @@
-# wumpus_world/agent/inference_module.py
+# src/agent/inference_module.py
+from collections import deque
 
 from utils.constants import (
-    N_DEFAULT,
-    K_DEFAULT,
-    PERCEPT_STENCH,
-    PERCEPT_BREEZE,
-    PERCEPT_GLITTER,
-    PERCEPT_SCREAM,
-    ACTION_MOVE_FORWARD,
-    WUMPUS_SYMBOL,
-    PIT_SYMBOL,
-    GOLD_SYMBOL,
-    DIRECTIONS,
+    N_DEFAULT, 
+    K_DEFAULT, 
+    PERCEPT_BREEZE, 
+    PERCEPT_GLITTER, 
+    PERCEPT_SCREAM, 
+    PERCEPT_STENCH, 
+    WUMPUS_SYMBOL, 
+    PIT_SYMBOL, 
+    GOLD_SYMBOL
 )
-
-# --- Atomic Sentences/Facts representation in the KB sets ---
-# Using strings for clarity in the knowledge base sets
-# Positive facts
-F_WUMPUS = "W"
-F_PIT = "P"
-F_GOLD = "G"
-F_SAFE = "S"
-# Negative facts (negations)
-F_NOT_WUMPUS = "-W"
-F_NOT_PIT = "-P"
-# Tentative facts (possibilities)
-F_POSSIBLE_WUMPUS = "W?"
-F_POSSIBLE_PIT = "P?"
-
-
-class KnowledgeBase:
-    """
-    Là "bộ não" chứa kiến thức. Nó trả lời câu hỏi: "Agent biết những gì?"
-    KB chứa các atomic sentences được thể hiện bằng ma trận các trạng thái của ô.
-    """
-    def __init__(self, N=N_DEFAULT, K=K_DEFAULT):
-        self.N = N
-        self.initial_wumpus_count = K
-        self.known_wumpus_count = K  # Agent's belief about live Wumpuses
-        self.gold_found_at = None
-
-        # kb: Detailed knowledge, stores atomic sentences (facts) for each cell.
-        # e.g., {'-W', '-P', 'S'} means the cell is known to be Not a Wumpus, Not a Pit, and is Safe.
-        self.kb = [[set() for _ in range(self.N)] for _ in range(self.N)]
-        
-        # kb_status: High-level summary for the planning module and display.
-        self.kb_status = [["Unknown" for _ in range(self.N)] for _ in range(self.N)]
-        self.visited = [[False for _ in range(self.N)] for _ in range(self.N)]
-
-        # Rule 5: Ràng buộc về ô xuất phát.
-        # Ô (0,0) luôn an toàn, nghĩa là ~P(0,0) ^ ~W(0,0).
-        self.add_fact((0, 0), F_NOT_PIT)
-        self.add_fact((0, 0), F_NOT_WUMPUS)
-        self.add_fact((0, 0), F_SAFE)
-        self.kb_status[0][0] = "Safe"
-
-    def add_fact(self, pos, fact):
-        """Adds a single atomic sentence (fact) to the KB for a given position."""
-        x, y = pos
-        if self._is_valid_coord(x, y):
-            self.kb[x][y].add(fact)
-
-    def get_facts(self, pos):
-        """Returns the set of facts for a given position."""
-        x, y = pos
-        return self.kb[x][y]
-
-    def mark_visited(self, pos):
-        x, y = pos
-        self.visited[x][y] = True
-        self.kb_status[x][y] = "Visited"
-        self.add_fact(pos, F_SAFE) # A visited cell is definitionally safe.
-
-    def _is_valid_coord(self, x, y):
-        return 0 <= x < self.N and 0 <= y < self.N
-
-    def _get_neighbors(self, x, y):
-        neighbors = []
-        for dx, dy in DIRECTIONS:
-            nx, ny = x + dx, y + dy
-            if self._is_valid_coord(nx, ny):
-                neighbors.append((nx, ny))
-        return neighbors
+from .knowledge_base import (
+    KnowledgeBase, 
+    F_WUMPUS, 
+    F_PIT, 
+    F_GOLD, 
+    F_SAFE, 
+    F_NOT_WUMPUS, 
+    F_NOT_PIT, 
+    F_POSSIBLE_WUMPUS, 
+    F_POSSIBLE_PIT, 
+    F_HAS_BREEZE, 
+    F_HAS_STENCH, 
+    F_DEAD_WUMPUS
+)
+from .rules import (
+    Rule, 
+    SafetyFromNoThreatsRule, 
+    ContradictionRule, 
+    WumpusResolutionRule, 
+    PitResolutionRule, 
+    GlobalWumpusCountRule
+)
 
 class InferenceEngine:
     """
-    Là "cơ chế tư duy" để tạo ra kiến thức mới từ kiến thức đã có.
-    Nó trả lời câu hỏi: "Agent suy luận như thế nào?".
-    Sử dụng các quy tắc logic để suy luận mệnh đề mới và cập nhật lại KB.
+    Represents the "Logic Processor" or the "Execution Engine".
     """
     def __init__(self, knowledge_base: KnowledgeBase):
         self.kb = knowledge_base
-
-    def run_inference(self, current_pos, percepts, last_shoot_dir=None):
-        """
-        The main inference loop. It repeatedly applies logical rules to derive new knowledge
-        until no more facts can be inferred. This simulates a forward chaining process.
-        """
-        x, y = current_pos
         
-        # 1. Update direct knowledge from percepts at current_pos
-        self._apply_percept_rules(current_pos, percepts)
+        # AGENDA-BASED REFACTOR: Rules are now categorized.
+        self.local_rules: list[Rule] = [
+            SafetyFromNoThreatsRule(),
+            ContradictionRule(),
+        ]
+        self.relational_rules: list[Rule] = [
+            WumpusResolutionRule(),
+            PitResolutionRule(),
+        ]
+        self.global_rule = GlobalWumpusCountRule()
 
-        # 2. Handle special events (Scream)
+    def _add_fact_to_kb(self, pos, fact, agenda):
+        """A helper to add a fact and update the agenda if the fact is new."""
+        if fact not in self.kb.get_facts(pos):
+            self.kb.add_fact(pos, fact)
+            # Any change at 'pos' means we should re-evaluate 'pos' and its neighbors.
+            agenda.append(pos)
+            for neighbor in self.kb.get_neighbors(pos):
+                agenda.append(neighbor)
+
+    def run_inference_cycle(self, current_pos, percepts, last_shoot_dir=None):
+        """
+        # AGENDA-BASED FORWARD-CHAINNING.
+        1. Seeds the agenda with initial facts from percepts.
+        2. Processes the agenda until it's empty, applying local and relational rules.
+        3. Applies global rules once at the end.
+        """
+        agenda = deque()
+
+        # Step 1: Seed the agenda with the current location.
+        agenda.append(current_pos)
+
+        # Handle special events first, they might add facts and update the agenda.
         if PERCEPT_SCREAM in percepts:
-            self._handle_scream(current_pos, last_shoot_dir)
+            self._handle_scream_event(current_pos, last_shoot_dir, agenda)
 
-        # 3. Iteratively apply deduction rules until knowledge base stabilizes
+        self._apply_percept_rules(current_pos, percepts, agenda)
+        
+        # Step 2: Process the agenda.
         while True:
-            new_knowledge_derived = False
-            for r in range(self.kb.N):
-                for c in range(self.kb.N):
-                    if self._apply_deduction_rules_for_cell((r, c)):
-                        new_knowledge_derived = True
-            
-            if self._apply_global_constraint_rules():
-                new_knowledge_derived = True
-
-            if not new_knowledge_derived:
-                break # KB is stable, no new inferences can be made in this cycle.
-        
-        # 4. Final update of high-level status map for the planner
-        self._update_all_cell_statuses()
-
-    def _apply_percept_rules(self, pos, percepts):
-        """Applies rules based on the immediate percepts at the current location."""
-        x, y = pos
-        neighbors = self.kb._get_neighbors(x, y)
-
-        # Rule 1 & 2 (Inverse): No Breeze/Stench implies safe neighbors
-        # ~B(x,y) => ~P(neighbor) for all neighbors
-        if PERCEPT_BREEZE not in percepts:
-            for nx, ny in neighbors:
-                self.kb.add_fact((nx, ny), F_NOT_PIT)
-        # ~S(x,y) => ~W(neighbor) for all neighbors
-        if PERCEPT_STENCH not in percepts:
-            for nx, ny in neighbors:
-                self.kb.add_fact((nx, ny), F_NOT_WUMPUS)
-        
-        # Rule 1 & 2 (Forward): Breeze/Stench implies possible danger
-        # B(x,y) => P(n1) V P(n2) ...
-        if PERCEPT_BREEZE in percepts:
-            for nx, ny in neighbors:
-                if not self.kb.visited[nx][ny]:
-                    self.kb.add_fact((nx, ny), F_POSSIBLE_PIT)
-        # S(x,y) => W(n1) V W(n2) ...
-        if PERCEPT_STENCH in percepts:
-             for nx, ny in neighbors:
-                if not self.kb.visited[nx][ny]:
-                    self.kb.add_fact((nx, ny), F_POSSIBLE_WUMPUS)
-
-        # Rule 4: Glitter <=> Gold
-        if PERCEPT_GLITTER in percepts:
-            self.kb.add_fact(pos, F_GOLD)
-            self.kb.gold_found_at = pos
-
-    def _handle_scream(self, shooter_pos, shoot_dir):
-        """Rule 9 & 10: Handles the 'Scream' percept and its consequences."""
-        if self.kb.known_wumpus_count == 0:
-            return # Should not happen if env is correct, but good practice
-
-        self.kb.known_wumpus_count -= 1
-        
-        if shoot_dir:
-            # Infer Wumpus location along the arrow's path
-            wx, wy = shooter_pos
-            while self.kb._is_valid_coord(wx, wy):
-                wx += shoot_dir[0]
-                wy += shoot_dir[1]
-                if self.kb._is_valid_coord(wx, wy):
-                     # The first non-visited or possibly dangerous cell is the most likely candidate
-                    if not self.kb.visited[wx][wy] or F_WUMPUS in self.kb.get_facts((wx,wy)):
-                        self.kb.add_fact((wx, wy), F_NOT_WUMPUS) # It's now dead
-                        # Since Wumpus is dead, the cell is safe from Wumpus threat
-                        self.kb.add_fact((wx, wy), F_SAFE) 
-                        print(f"Inferred Wumpus at {(wx,wy)} is killed!")
-                        break
-
-    def _apply_deduction_rules_for_cell(self, pos):
-        """
-        Applies resolution-style logic for a single cell to determine if it's a definite Pit or Wumpus.
-        This is the core of the reasoning process.
-        """
-        facts_added = False
-        facts = self.kb.get_facts(pos)
-
-        # Skip if already known
-        if F_WUMPUS in facts or F_PIT in facts or F_SAFE in facts:
-            return False
-
-        # --- Try to prove Wumpus ---
-        # If a cell (x,y) is a possible Wumpus, check all its visited neighbors.
-        # If any neighbor (vx,vy) has a Stench, and ALL OTHER neighbors of (vx,vy) are known NOT to be Wumpus,
-        # then (x,y) MUST be the Wumpus.
-        if F_POSSIBLE_WUMPUS in facts:
-            for nx, ny in self.kb._get_neighbors(pos[0], pos[1]):
-                if self.kb.visited[nx][ny]: # Check from a visited (and thus known percept) cell
-                    # Let's check if (nx,ny) had a stench percept implicitly
-                    # This requires storing percepts, or more simply, using resolution
-                    # Simple version: check neighbors of the neighbor
-                    neighbors_of_neighbor = self.kb._get_neighbors(nx, ny)
-                    unknown_neighbors = []
-                    for non in neighbors_of_neighbor:
-                        if F_NOT_WUMPUS not in self.kb.get_facts(non):
-                            unknown_neighbors.append(non)
-                    
-                    # If this cell 'pos' is the ONLY possible source of the stench for neighbor (nx,ny)
-                    if len(unknown_neighbors) == 1 and unknown_neighbors[0] == pos:
-                        self.kb.add_fact(pos, F_WUMPUS)
-                        facts_added = True
-                        break # Found Wumpus, no need to check other neighbors
-
-        # --- Try to prove Pit (same logic) ---
-        if F_POSSIBLE_PIT in facts and not facts_added:
-            for nx, ny in self.kb._get_neighbors(pos[0], pos[1]):
-                if self.kb.visited[nx][ny]:
-                    neighbors_of_neighbor = self.kb._get_neighbors(nx, ny)
-                    unknown_neighbors = []
-                    for non in neighbors_of_neighbor:
-                        if F_NOT_PIT not in self.kb.get_facts(non):
-                            unknown_neighbors.append(non)
-                    
-                    if len(unknown_neighbors) == 1 and unknown_neighbors[0] == pos:
-                        self.kb.add_fact(pos, F_PIT)
-                        facts_added = True
-                        break
-        
-        # Rule 6: Ràng buộc về sự tồn tại duy nhất trong một ô
-        if F_WUMPUS in self.kb.get_facts(pos):
-             self.kb.add_fact(pos, F_NOT_PIT)
-        if F_PIT in self.kb.get_facts(pos):
-            self.kb.add_fact(pos, F_NOT_WUMPUS)
-
-        # Rule 3: Quy tắc về sự an toàn
-        if F_NOT_WUMPUS in self.kb.get_facts(pos) and F_NOT_PIT in self.kb.get_facts(pos):
-            if F_SAFE not in self.kb.get_facts(pos):
-                self.kb.add_fact(pos, F_SAFE)
-                facts_added = True
-
-        return facts_added
-
-    def _apply_global_constraint_rules(self):
-        """Applies world-wide constraints like the number of Wumpuses and Gold."""
-        facts_added = False
-        # Rule 7: Ràng buộc về số lượng Wumpus
-        confirmed_wumpuses = []
-        possible_wumpuses = []
-        for r in range(self.kb.N):
-            for c in range(self.kb.N):
-                facts = self.kb.get_facts((r, c))
-                if F_WUMPUS in facts:
-                    confirmed_wumpuses.append((r,c))
-                elif F_NOT_WUMPUS not in facts and not self.kb.visited[r][c]:
-                    possible_wumpuses.append((r,c))
-
-        # If we've found all the wumpuses, all other possible spots are safe from wumpuses.
-        if len(confirmed_wumpuses) == self.kb.known_wumpus_count:
-            for pos in possible_wumpuses:
-                if F_NOT_WUMPUS not in self.kb.get_facts(pos):
-                    self.kb.add_fact(pos, F_NOT_WUMPUS)
-                    facts_added = True
-        
-        # Rule 8: Ràng buộc về số lượng Vàng
-        if self.kb.gold_found_at:
-            for r in range(self.kb.N):
-                for c in range(self.kb.N):
-                    if (r, c) != self.kb.gold_found_at:
-                        if F_GOLD in self.kb.get_facts((r,c)): # Should not happen
-                             self.kb.get_facts((r,c)).remove(F_GOLD)
-        
-        return facts_added
-
-    def _update_all_cell_statuses(self):
-        """Updates the high-level kb_status map based on the detailed facts in the KB."""
-        for x in range(self.kb.N):
-            for y in range(self.kb.N):
-                if self.kb.visited[x][y]:
-                    self.kb.kb_status[x][y] = "Visited"
+            # Process local and relational rules until the agenda is locally stable.
+            processed_this_loop = set()
+            while agenda:
+                pos_to_process = agenda.popleft()
+                if pos_to_process in processed_this_loop:
                     continue
+                processed_this_loop.add(pos_to_process)
 
-                facts = self.kb.get_facts((x, y))
-                if F_SAFE in facts or (F_NOT_WUMPUS in facts and F_NOT_PIT in facts):
-                    self.kb.kb_status[x][y] = "Safe"
-                elif F_WUMPUS in facts or F_PIT in facts:
-                    self.kb.kb_status[x][y] = "Dangerous"
-                else:
-                    self.kb.kb_status[x][y] = "Unknown"
+                for rule in self.local_rules:
+                    new_facts = rule.apply(self.kb, pos_to_process)
+                    for pos, fact in new_facts:
+                        self._add_fact_to_kb(pos, fact, agenda)
+                
+                for rule in self.relational_rules:
+                    new_facts = rule.apply(self.kb, pos_to_process)
+                    for pos, fact in new_facts:
+                        self._add_fact_to_kb(pos, fact, agenda)
+
+            # Now that local inference has stabilized, apply the global rule.
+            new_global_facts = self.global_rule.apply(self.kb)
+            for pos, fact in new_global_facts:
+                self._add_fact_to_kb(pos, fact, agenda)
+
+            # If the global rule produced new facts, the agenda is no longer empty,
+            # and the outer loop will continue to process their consequences.
+            # If the agenda is still empty, it means the KB is fully stable, so we break.
+            if not agenda:
+                break
+
+    def _apply_percept_rules(self, current_pos, percepts, agenda):
+        """Applies direct percept rules and seeds the agenda."""
+        neighbors = self.kb.get_neighbors(current_pos)
+        
+        if PERCEPT_STENCH not in percepts:
+            for n_pos in neighbors: self._add_fact_to_kb(n_pos, F_NOT_WUMPUS, agenda)
+        else:
+            self._add_fact_to_kb(current_pos, F_HAS_STENCH, agenda)
+            for n_pos in neighbors:
+                 if F_NOT_WUMPUS not in self.kb.get_facts(n_pos):
+                    self._add_fact_to_kb(n_pos, F_POSSIBLE_WUMPUS, agenda)
+
+        if PERCEPT_BREEZE not in percepts:
+            for n_pos in neighbors: self._add_fact_to_kb(n_pos, F_NOT_PIT, agenda)
+        else:
+            self._add_fact_to_kb(current_pos, F_HAS_BREEZE, agenda)
+            for n_pos in neighbors:
+                if F_NOT_PIT not in self.kb.get_facts(n_pos):
+                    self._add_fact_to_kb(n_pos, F_POSSIBLE_PIT, agenda)
+            
+        if PERCEPT_GLITTER in percepts:
+            self._add_fact_to_kb(current_pos, F_GOLD, agenda)
+            self.kb.gold_found_at = current_pos
+
+    def _handle_scream_event(self, shooter_pos, shoot_dir, agenda):
+        # If no living Wumpus left, nothing to do.
+        if self.kb.known_wumpus_count == 0:
+            return
+
+        # We heard a scream: one living Wumpus has died. Decrement immediately.
+        # (This ensures we account for the death even if we cannot localize.)
+        self.kb.known_wumpus_count = max(0, self.kb.known_wumpus_count - 1)
+
+        # If shooting direction unknown, we cannot localize — just return.
+        if not shoot_dir:
+            return
+
+        # Start from the cell next to shooter.
+        wx, wy = shooter_pos
+        wx += shoot_dir[0]; wy += shoot_dir[1]
+
+        localized = False
+        while self.kb._is_valid_coord(wx, wy):
+            pos = (wx, wy)
+            facts = self.kb.get_facts(pos)
+
+            # Candidate if this cell is NOT proven to be Wumpus-free and not already dead.
+            # This treats unknown cells as potential real targets (correct for arrow semantics).
+            if F_NOT_WUMPUS not in facts and F_DEAD_WUMPUS not in facts:
+                # Localize the killed Wumpus here.
+                self._add_fact_to_kb(pos, F_WUMPUS, agenda)
+                self._add_fact_to_kb(pos, F_DEAD_WUMPUS, agenda)
+
+                # Explain/remove stench where appropriate.
+                self._explain_stenches_by_dead(pos, agenda)
+
+                localized = True
+                break
+
+            wx += shoot_dir[0]
+            wy += shoot_dir[1]
+
+        if not localized:
+            pass
 
 
+    def _explain_stenches_by_dead(self, dead_pos, agenda):
+        """
+        When a Wumpus is confirmed dead, any stench percept in its neighboring
+        visited cells that *cannot* be explained by any other still-possible source
+        should be removed. We consider a grand-neighbor (neighbor of the visited)
+        a potential source unless it is proven F_NOT_WUMPUS or proven dead.
+        """
+        for neighbor in self.kb.get_neighbors(dead_pos):
+            facts = self.kb.get_facts(neighbor)
+            if F_HAS_STENCH not in facts:
+                continue
+
+            # Determine if any other adjacent cell (excluding the dead_pos) could still explain the stench.
+            other_potential_source_exists = False
+            for grand_neighbor in self.kb.get_neighbors(neighbor):
+                if grand_neighbor == dead_pos:
+                    continue
+                gn_facts = self.kb.get_facts(grand_neighbor)
+
+                # If grand_neighbor is not proven Wumpus-free and not proven dead, it is still a possible source.
+                if F_NOT_WUMPUS not in gn_facts and F_DEAD_WUMPUS not in gn_facts:
+                    other_potential_source_exists = True
+                    break
+
+            # If no other potential sources remain, it is safe to remove F_HAS_STENCH.
+            if not other_potential_source_exists:
+                # safer to record an "explained" tag rather than permanently deleting,
+                # but following your original design we remove and re-enqueue for re-eval.
+                facts.remove(F_HAS_STENCH)
+                agenda.append(neighbor)
+
+
+# It acts as a facade, so the agent doesn't need to know about the internal changes.
 class InferenceModule:
     """
-    Module tích hợp chứa KnowledgeBase và InferenceEngine.
-    Đây là giao diện chính mà Agent sẽ tương tác để cập nhật và truy vấn kiến thức.
+    Acts as the "Manager" and a "Facade" for the entire reasoning system.
     """
     def __init__(self, N=N_DEFAULT, K=K_DEFAULT):
         self.kb = KnowledgeBase(N, K)
         self.engine = InferenceEngine(self.kb)
 
     def update_knowledge(self, current_pos, percepts, last_action=None, last_shoot_dir=None):
-        """
-        Cập nhật toàn bộ kiến thức của agent dựa trên cảm nhận mới.
-        """
-        # 1. Mark current cell as visited and safe.
         self.kb.mark_visited(current_pos)
-        self.kb.add_fact(current_pos, F_NOT_PIT)
-        self.kb.add_fact(current_pos, F_NOT_WUMPUS)
-        
-        # 2. Run the inference engine to deduce new facts.
-        self.engine.run_inference(current_pos, percepts, last_shoot_dir)
+        self.engine.run_inference_cycle(current_pos, percepts, last_shoot_dir)
+        self._update_kb_status_map()
 
-    # --- Methods for Agent/Planner to access knowledge ---
-    
+    def _update_kb_status_map(self):
+        for x in range(self.kb.N):
+            for y in range(self.kb.N):
+                pos = (x, y)
+                if self.kb.visited[x][y]:
+                    self.kb.kb_status[x][y] = "Visited"
+                    continue
+                facts = self.kb.get_facts(pos)
+                if F_SAFE in facts:
+                    self.kb.kb_status[x][y] = "Safe"
+                elif (F_WUMPUS in facts and F_DEAD_WUMPUS not in facts) or F_PIT in facts:
+                    self.kb.kb_status[x][y] = "Dangerous"
+                else:
+                    self.kb.kb_status[x][y] = "Unknown"
+
     def get_kb_status(self):
-        """Returns the high-level status map for the planner."""
         return self.kb.kb_status
 
     def get_visited_cells(self):
         return self.kb.visited
-
+    
     def get_known_map(self):
-        """Returns a map for display purposes showing confirmed W, P, G."""
         known_map = [[set() for _ in range(self.kb.N)] for _ in range(self.kb.N)]
         for r in range(self.kb.N):
             for c in range(self.kb.N):
                 facts = self.kb.get_facts((r, c))
-                if F_WUMPUS in facts:
+                if F_WUMPUS in facts and F_DEAD_WUMPUS not in facts: 
                     known_map[r][c].add(WUMPUS_SYMBOL)
-                if F_PIT in facts:
+                if F_PIT in facts: 
                     known_map[r][c].add(PIT_SYMBOL)
-                if F_GOLD in facts:
+                if F_GOLD in facts: 
                     known_map[r][c].add(GOLD_SYMBOL)
         return known_map
     
     @property
     def possible_wumpus(self):
-        """Derives possible wumpus locations from the KB."""
         possible = set()
         for x in range(self.kb.N):
             for y in range(self.kb.N):
                 facts = self.kb.get_facts((x,y))
-                if not self.kb.visited[x][y] and F_NOT_WUMPUS not in facts:
+                if not self.kb.visited[x][y] and F_NOT_WUMPUS not in facts and F_WUMPUS not in facts:
                     possible.add((x, y))
         return possible
