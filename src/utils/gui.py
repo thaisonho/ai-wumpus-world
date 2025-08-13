@@ -55,7 +55,7 @@ class WumpusWorldGUI:
         
         # Simulation control
         self.paused = False
-        self.step_mode = False  # When True, advances one step at a time
+        self.step_mode = False  # Add missing step_mode attribute
         self.grid_offset_x = 50
         self.grid_offset_y = 50
         
@@ -685,16 +685,16 @@ class WumpusWorldGUI:
     
     def pause(self, seconds=0.5):
         """
-        Pause the display for a given number of seconds or wait for key press in step mode
-        Also handles pause/unpause and step mode toggling via keyboard
+        Pause the display for a given number of seconds or handle key press during pause
+        Also handles pause/unpause and step-by-step navigation via keyboard
         Returns True if the pause should be skipped (for next step)
         """
         start_time = time.time()
-        waiting_for_step = self.step_mode
+        waiting_for_step = False  # No longer using step mode
         should_skip_pause = False  # To return to main loop for immediate step
         
-        # Create text overlay if paused or in step mode
-        if self.paused or self.step_mode or self.current_history_index != -1:
+        # Create text overlay if paused or in history mode
+        if self.paused or self.current_history_index != -1:
             overlay_surface = pygame.Surface((400, 120), pygame.SRCALPHA)
             overlay_surface.fill((0, 0, 0, 180))  # Semi-transparent black
             
@@ -704,12 +704,12 @@ class WumpusWorldGUI:
                 help_text2 = "HOME: return to live state"
             elif self.paused:
                 status_text = "PAUSED"
-                help_text1 = "P to unpause, S for step mode"
-                help_text2 = "RIGHT arrow to execute next step"
-            else:  # step mode
-                status_text = "STEP MODE"
-                help_text1 = "SPACE/RIGHT to advance step, P to play"
-                help_text2 = "LEFT to view history"
+                help_text1 = "P to play/unpause"
+                help_text2 = "RIGHT/SPACE to execute next step"
+            else:
+                status_text = "PLAYING"
+                help_text1 = "P to pause"
+                help_text2 = "LEFT arrow to view history"
                 
             # Add history indicator bar if we have history
             if self.history and (self.paused or self.current_history_index != -1):
@@ -754,7 +754,6 @@ class WumpusWorldGUI:
                     # 'P' key toggles pause
                     if event.key == pygame.K_p:
                         self.paused = not self.paused
-                        self.step_mode = False
                         waiting_for_step = False
                         # Return to live state if unpausing from history view
                         if self.current_history_index != -1 and not self.paused:
@@ -762,20 +761,13 @@ class WumpusWorldGUI:
                         # Redraw the screen to update the overlay
                         pygame.display.flip()
                         
-                    # 'S' key toggles step mode
-                    elif event.key == pygame.K_s:
-                        self.step_mode = not self.step_mode
+                    # Space bar advances one step when paused (same as RIGHT arrow)
+                    elif event.key == pygame.K_SPACE and self.paused:
+                        # Temporarily unpause to allow one step to execute
                         self.paused = False
-                        waiting_for_step = self.step_mode
-                        # Return to live state if enabling step mode from history view
-                        if self.current_history_index != -1:
-                            self.current_history_index = -1
-                        # Redraw the screen to update the overlay
-                        pygame.display.flip()
-                        
-                    # Space bar advances in step mode
-                    elif event.key == pygame.K_SPACE and waiting_for_step:
-                        waiting_for_step = False
+                        should_skip_pause = True  # Signal to main loop we want one step
+                        waiting_for_step = False  # Exit the pause loop
+                        print("Next step requested - executing one step")
                     
                     # LEFT arrow to go to previous step
                     elif event.key == pygame.K_LEFT:
@@ -799,9 +791,6 @@ class WumpusWorldGUI:
                             should_skip_pause = True  # Signal to main loop we want one step
                             waiting_for_step = False  # Exit the pause loop
                             print("Next step requested - executing one step")
-                        elif self.step_mode:
-                            # In step mode, this works like space
-                            waiting_for_step = False  # Exit the pause loop
                     
                     # HOME key to return to current state
                     elif event.key == pygame.K_HOME:
@@ -820,7 +809,7 @@ class WumpusWorldGUI:
                         self.log_scroll_position += 3
                         pygame.display.flip()
                         
-            if not (self.paused or waiting_for_step or time.time() - start_time < seconds):
+            if not (self.paused or time.time() - start_time < seconds):
                 break
                 
             time.sleep(0.01)  # Small sleep to prevent high CPU usage
@@ -976,7 +965,7 @@ class WumpusWorldGUI:
             
             # Navigation help
             help_text1 = self.font_small.render("LEFT/RIGHT arrows: Navigate history/steps", True, (200, 200, 200))
-            help_text2 = self.font_small.render("P: Pause, S: Step mode, SPACE/RIGHT: Next step", True, (200, 200, 200))
+            help_text2 = self.font_small.render("P: Play/Pause, SPACE/RIGHT: Next step when paused", True, (200, 200, 200))
             help_text3 = self.font_small.render("HOME: Return to live state when viewing history", True, (200, 200, 200))
             exit_text = self.font_small.render("Press any key to exit", True, (255, 200, 200))
             
