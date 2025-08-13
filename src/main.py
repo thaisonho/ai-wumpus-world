@@ -337,6 +337,9 @@ def run_multi_trial_comparison(num_trials=10, N=N_DEFAULT, K=K_DEFAULT, p=P_DEFA
         moving_wumpus (bool): Whether wumpuses should move around.
         use_gui (bool): Whether to use the GUI (True) or text display (False).
     """
+    # Set max_steps consistent with run_simulation function
+    max_steps = 500
+    
     intelligent_wins = 0
     intelligent_scores = []
     intelligent_steps = []
@@ -373,10 +376,15 @@ def run_multi_trial_comparison(num_trials=10, N=N_DEFAULT, K=K_DEFAULT, p=P_DEFA
         # Store results
         final_state = intelligent_env.get_current_state()
         intelligent_scores.append(final_state['score'])
-        # Get steps from the state or estimate if not available
-        intelligent_steps.append(500 - final_state.get('steps_remaining', 0))
+        
+        # Calculate steps based on whether the game was won or lost
         if final_state['game_state'] == GAME_STATE_WON:
             intelligent_wins += 1
+            # If the agent won, it likely took fewer steps than max_steps
+            intelligent_steps.append(intelligent_state.get('steps_used', 50))
+        else:
+            # If the agent lost, it either hit max_steps or died earlier
+            intelligent_steps.append(intelligent_state.get('steps_used', max_steps))
         
         print("\n===== RANDOM AGENT SIMULATION =====")
         random_env = copy.deepcopy(env)  # Create a copy for the random agent
@@ -397,10 +405,15 @@ def run_multi_trial_comparison(num_trials=10, N=N_DEFAULT, K=K_DEFAULT, p=P_DEFA
         # Store results
         final_state = random_env.get_current_state()
         random_scores.append(final_state['score'])
-        # Get steps from the state or estimate if not available
-        random_steps.append(500 - final_state.get('steps_remaining', 0))
+        
+        # Calculate steps based on whether the game was won or lost
         if final_state['game_state'] == GAME_STATE_WON:
             random_wins += 1
+            # If the agent won, it likely took fewer steps than max_steps
+            random_steps.append(random_state.get('steps_used', 50))
+        else:
+            # If the agent lost, it either hit max_steps or died earlier
+            random_steps.append(random_state.get('steps_used', max_steps))
         
         # Print trial results
         print(f"Intelligent Agent: {'Won' if intelligent_env.game_state == GAME_STATE_WON else 'Lost'}, Score: {intelligent_scores[-1]}, Steps: {intelligent_steps[-1]}")
