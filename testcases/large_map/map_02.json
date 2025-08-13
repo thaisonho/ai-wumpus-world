@@ -1,0 +1,12 @@
+{
+  "name": "Large Map 2",
+  "description": "A 12x12 map with a gold in the far corner and strategic placement of wumpuses",
+  "N": 12,
+  "wumpus_positions": [[2, 10], [4, 6], [7, 3], [9, 7], [11, 11]],
+  "pit_positions": [
+    [1, 2], [2, 5], [3, 8], [5, 1], [5, 9], 
+    [6, 4], [6, 11], [8, 2], [8, 8], [9, 5],
+    [10, 10], [11, 3], [11, 7]
+  ],
+  "gold_position": [11, 10]
+}

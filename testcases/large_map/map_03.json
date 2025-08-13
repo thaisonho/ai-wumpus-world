@@ -1,0 +1,16 @@
+{
+  "name": "Large Map 3",
+  "description": "A 15x15 map with a complex layout requiring advanced planning",
+  "N": 15,
+  "wumpus_positions": [
+    [2, 7], [4, 12], [7, 2], [7, 13], 
+    [10, 5], [12, 9], [14, 14]
+  ],
+  "pit_positions": [
+    [1, 4], [2, 10], [3, 6], [4, 2], [5, 8], 
+    [5, 14], [6, 3], [7, 7], [8, 4], [8, 11], 
+    [9, 1], [9, 9], [10, 13], [11, 6], [12, 2],
+    [12, 12], [13, 8], [14, 4], [14, 10]
+  ],
+  "gold_position": [13, 13]
+}

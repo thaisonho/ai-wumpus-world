@@ -1,0 +1,8 @@
+{
+  "name": "Small Map 1",
+  "description": "A small 4x4 map with 1 wumpus, 2 pits, and 1 gold",
+  "N": 4,
+  "wumpus_positions": [[2, 2]],
+  "pit_positions": [[1, 2], [3, 1]],
+  "gold_position": [3, 3]
+}
