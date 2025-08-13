@@ -3,7 +3,6 @@ import os
 import time
 import copy
 from utils.constants import (
-    AGENT_SYMBOL,
     WUMPUS_SYMBOL,
     PIT_SYMBOL,
     GOLD_SYMBOL,
@@ -14,14 +13,10 @@ from utils.constants import (
     PERCEPT_GLITTER,
     PERCEPT_BUMP,
     PERCEPT_SCREAM,
-    DIRECTIONS,
     NORTH,
     EAST,
     SOUTH,
     WEST,
-    GAME_STATE_PLAYING,
-    GAME_STATE_WON,
-    GAME_STATE_LOST,
 )
 
 class WumpusWorldGUI:

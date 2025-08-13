@@ -2,7 +2,7 @@ from environment.environment import WumpusWorldEnvironment
 from environment.advanced_environment import AdvancedWumpusWorldEnvironment
 from agent.agent import WumpusWorldAgent  # Import the intelligent agent with inference capability
 from utils.display import WumpusWorldDisplay  # Text-based display fallback
-from utils.gui import WumpusWorldGUI  # Graphical user interface
+from utils.gui_optimized import WumpusWorldGUI  # Optimized Graphical user interface
 from utils.constants import (
     N_DEFAULT,
     K_DEFAULT,
