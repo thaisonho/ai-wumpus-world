@@ -97,7 +97,7 @@ class WumpusWorldGUI:
         self.assets['cross'] = cross
     
     def display_map(self, agent_known_map, agent_kb_status, agent_pos, agent_dir,
-                   agent_has_gold, score, percepts, message=""):
+                   agent_has_gold, score, percepts, message="", true_map=None):
         """Display the Wumpus World map using Pygame."""
         # Update message and log
         self._update_message_and_log(message)
