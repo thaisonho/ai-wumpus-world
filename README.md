@@ -2,92 +2,90 @@
 
 This project implements an AI agent that navigates through the Wumpus World environment using logical inference and strategic planning.
 
-## Features
+## Requirements
 
-- Intelligent agent using logical inference and knowledge representation
-- Knowledge base and inference engine for logical reasoning
-- Multiple environment options (static or moving wumpuses)
-- Choice between text-based display or graphical user interface (GUI)
-- History tracking and playback of agent's actions
-- Interactive pause/step functionality
+- Python 3.8 or higher
+- Pygame 2.5.2 (for GUI display)
 
-## GUI Features
+## Setup
 
-The GUI visualizes the Wumpus World environment with the following elements:
-
-- **Map Display**: Shows the current state of the world
-  - Discovered squares use floor textures
-  - Undiscovered squares use wall textures
-  - Visual indicators for gold, pits, and wumpuses
-  - Agent with directional representation
-  - Killed wumpuses are marked with a red X
-
-- **Status Panel**: Shows current game information
-  - Current score
-  - Current percepts (Stench, Breeze, Glitter, etc.)
-  - Gold collection status
-  - Agent position and direction
-  - Current action/status message
-
-- **Agent Log**: Shows a history of agent actions and events
-
-- **Interactive Controls**:
-  - Pause/Resume simulation with 'P' key
-  - Step-by-step execution with Space or Right arrow
-  - Navigate history with Left/Right arrows
-  - Return to live state with Home key
-
-## How to Run
-
-1. Create and activate a virtual environment:
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/thaisonho/ai-wumpus-world.git
+   cd ai-wumpus-world
    ```
+
+2. Create and activate a virtual environment:
+   ```bash
    python -m venv .venv
    source .venv/bin/activate   # On Linux/Mac
    # OR
    .venv\Scripts\activate      # On Windows
    ```
 
-2. Install the required dependencies:
-   ```
+3. Install the required dependencies:
+   ```bash
    pip install -r requirements.txt
    ```
 
-3. Run the main script:
-   ```
-   python src/main.py
-   ```
+## Running the Main Simulation
 
-4. Follow the on-screen prompts to configure the simulation parameters.
+To run the main Wumpus World simulation:
 
-## Code Structure
+```bash
+python src/main.py
+```
 
-- **src/agent/**: Contains the intelligent agent implementation
-  - `agent.py`: Main agent class
-  - `knowledge_base.py`: Knowledge representation
-  - `inference_module.py`: Logical reasoning engine
-  - `pathfinding_module.py`: Path planning
-  - `planning_module.py`: Action planning
-  - `rules.py`: Logical rules
+You will be prompted to configure the simulation parameters:
+- Grid size (NxN)
+- Number of wumpuses
+- Pit probability
+- Delay between steps
+- Whether wumpuses can move
+- Whether to use GUI or text-based display
+- Simulation mode (single agent, comparison, or multi-trial)
 
-- **src/environment/**: Contains the world environment
-  - `environment.py`: Base environment
-  - `advanced_environment.py`: Environment with moving wumpuses
-  - `map_generator.py`: World generation
+## Running Testcases
 
-- **src/utils/**: Contains utilities
-  - `constants.py`: Game constants
-  - `display.py`: Text-based display
-  - `gui_optimized.py`: Optimized graphical interface
+The project includes predefined testcases with maps of different sizes.
 
-## Recent Improvements
+### Running a Specific Testcase
 
-- Optimized GUI code with better organization and reduced redundancy
-- Modularized functions for better maintainability
-- Improved method naming for clarity
-- Reduced code duplication through helper methods
-- Enhanced readability through consistent structure
+To run a specific testcase:
 
-## Requirements
+```bash
+python run_testcases.py --testcase testcases/small_map/map_01.json
+```
 
-- Python 3.8 or higher
-- Pygame 2.5.2 (for GUI display)
+This will execute the agent on the specified map and save the results to a JSON file in the corresponding results directory.
+
+### Running All Testcases
+
+To run all available testcases:
+
+```bash
+python run_testcases.py --all
+```
+
+### Visualizing Testcases and Results
+
+You can visualize testcase maps and results using ASCII characters:
+
+```bash
+# Visualize a testcase map
+python visualize_testcase.py --testcase testcases/small_map/map_01.json
+
+# Visualize a test result
+python visualize_testcase.py --result testcases/small_map/results/map_01_20250813_223457.json
+```
+
+## Testcase Directory Structure
+
+```
+testcases/
+├── small_map/       # 4x4 maps
+├── medium_map/      # 8x8 maps
+└── large_map/       # 12x12 and 15x15 maps
+```
+
+For more details on the testcases, see [testcases/README.md](testcases/README.md).

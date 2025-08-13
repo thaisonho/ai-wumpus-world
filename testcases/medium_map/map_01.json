@@ -1,0 +1,8 @@
+{
+  "name": "Medium Map 1",
+  "description": "An 8x8 map with 2 wumpuses, multiple pits, and gold in the center",
+  "N": 8,
+  "wumpus_positions": [[2, 5], [5, 2]],
+  "pit_positions": [[1, 2], [3, 4], [4, 6], [6, 3], [7, 7]],
+  "gold_position": [4, 4]
+}

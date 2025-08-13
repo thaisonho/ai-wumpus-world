@@ -1,0 +1,3693 @@
+{
+  "testcase_name": "map_03.json",
+  "config": {
+    "name": "Large Map 3",
+    "description": "A 15x15 map with a complex layout requiring advanced planning",
+    "N": 15,
+    "wumpus_positions": [
+      [
+        2,
+        7
+      ],
+      [
+        4,
+        12
+      ],
+      [
+        7,
+        2
+      ],
+      [
+        7,
+        13
+      ],
+      [
+        10,
+        5
+      ],
+      [
+        12,
+        9
+      ],
+      [
+        14,
+        14
+      ]
+    ],
+    "pit_positions": [
+      [
+        1,
+        4
+      ],
+      [
+        2,
+        10
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        5,
+        8
+      ],
+      [
+        5,
+        14
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        7,
+        7
+      ],
+      [
+        8,
+        4
+      ],
+      [
+        8,
+        11
+      ],
+      [
+        9,
+        1
+      ],
+      [
+        9,
+        9
+      ],
+      [
+        10,
+        13
+      ],
+      [
+        11,
+        6
+      ],
+      [
+        12,
+        2
+      ],
+      [
+        12,
+        12
+      ],
+      [
+        13,
+        8
+      ],
+      [
+        14,
+        4
+      ],
+      [
+        14,
+        10
+      ]
+    ],
+    "gold_position": [
+      13,
+      13
+    ]
+  },
+  "steps": [
+    {
+      "step": 1,
+      "agent_pos": [
+        0,
+        0
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": 0,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 2,
+      "agent_pos": [
+        0,
+        0
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -1,
+      "action": "MoveForward",
+      "action_result": "Moved to (0, 1)."
+    },
+    {
+      "step": 3,
+      "agent_pos": [
+        0,
+        1
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -2,
+      "action": "MoveForward",
+      "action_result": "Moved to (0, 2)."
+    },
+    {
+      "step": 4,
+      "agent_pos": [
+        0,
+        2
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -3,
+      "action": "MoveForward",
+      "action_result": "Moved to (0, 3)."
+    },
+    {
+      "step": 5,
+      "agent_pos": [
+        0,
+        3
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -4,
+      "action": "MoveForward",
+      "action_result": "Moved to (0, 4)."
+    },
+    {
+      "step": 6,
+      "agent_pos": [
+        0,
+        4
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -5,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 7,
+      "agent_pos": [
+        0,
+        4
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -6,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 8,
+      "agent_pos": [
+        0,
+        4
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -7,
+      "action": "MoveForward",
+      "action_result": "Moved to (0, 3)."
+    },
+    {
+      "step": 9,
+      "agent_pos": [
+        0,
+        3
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -8,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 10,
+      "agent_pos": [
+        0,
+        3
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -9,
+      "action": "MoveForward",
+      "action_result": "Moved to (1, 3)."
+    },
+    {
+      "step": 11,
+      "agent_pos": [
+        1,
+        3
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -10,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 12,
+      "agent_pos": [
+        1,
+        3
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -11,
+      "action": "MoveForward",
+      "action_result": "Moved to (1, 2)."
+    },
+    {
+      "step": 13,
+      "agent_pos": [
+        1,
+        2
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -12,
+      "action": "MoveForward",
+      "action_result": "Moved to (1, 1)."
+    },
+    {
+      "step": 14,
+      "agent_pos": [
+        1,
+        1
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -13,
+      "action": "MoveForward",
+      "action_result": "Moved to (1, 0)."
+    },
+    {
+      "step": 15,
+      "agent_pos": [
+        1,
+        0
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -14,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 16,
+      "agent_pos": [
+        1,
+        0
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -15,
+      "action": "MoveForward",
+      "action_result": "Moved to (2, 0)."
+    },
+    {
+      "step": 17,
+      "agent_pos": [
+        2,
+        0
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -16,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 18,
+      "agent_pos": [
+        2,
+        0
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -17,
+      "action": "MoveForward",
+      "action_result": "Moved to (2, 1)."
+    },
+    {
+      "step": 19,
+      "agent_pos": [
+        2,
+        1
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -18,
+      "action": "MoveForward",
+      "action_result": "Moved to (2, 2)."
+    },
+    {
+      "step": 20,
+      "agent_pos": [
+        2,
+        2
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -19,
+      "action": "MoveForward",
+      "action_result": "Moved to (2, 3)."
+    },
+    {
+      "step": 21,
+      "agent_pos": [
+        2,
+        3
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -20,
+      "action": "MoveForward",
+      "action_result": "Moved to (2, 4)."
+    },
+    {
+      "step": 22,
+      "agent_pos": [
+        2,
+        4
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -21,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 23,
+      "agent_pos": [
+        2,
+        4
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -22,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 24,
+      "agent_pos": [
+        2,
+        4
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -23,
+      "action": "MoveForward",
+      "action_result": "Moved to (2, 3)."
+    },
+    {
+      "step": 25,
+      "agent_pos": [
+        2,
+        3
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -24,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 26,
+      "agent_pos": [
+        2,
+        3
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -25,
+      "action": "MoveForward",
+      "action_result": "Moved to (3, 3)."
+    },
+    {
+      "step": 27,
+      "agent_pos": [
+        3,
+        3
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -26,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 28,
+      "agent_pos": [
+        3,
+        3
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -27,
+      "action": "MoveForward",
+      "action_result": "Moved to (3, 2)."
+    },
+    {
+      "step": 29,
+      "agent_pos": [
+        3,
+        2
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -28,
+      "action": "MoveForward",
+      "action_result": "Moved to (3, 1)."
+    },
+    {
+      "step": 30,
+      "agent_pos": [
+        3,
+        1
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -29,
+      "action": "MoveForward",
+      "action_result": "Moved to (3, 0)."
+    },
+    {
+      "step": 31,
+      "agent_pos": [
+        3,
+        0
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -30,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 32,
+      "agent_pos": [
+        3,
+        0
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -31,
+      "action": "MoveForward",
+      "action_result": "Moved to (4, 0)."
+    },
+    {
+      "step": 33,
+      "agent_pos": [
+        4,
+        0
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -32,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 34,
+      "agent_pos": [
+        4,
+        0
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -33,
+      "action": "MoveForward",
+      "action_result": "Moved to (4, 1)."
+    },
+    {
+      "step": 35,
+      "agent_pos": [
+        4,
+        1
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -34,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 36,
+      "agent_pos": [
+        4,
+        1
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -35,
+      "action": "MoveForward",
+      "action_result": "Moved to (3, 1)."
+    },
+    {
+      "step": 37,
+      "agent_pos": [
+        3,
+        1
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -36,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 38,
+      "agent_pos": [
+        3,
+        1
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -37,
+      "action": "MoveForward",
+      "action_result": "Moved to (3, 2)."
+    },
+    {
+      "step": 39,
+      "agent_pos": [
+        3,
+        2
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -38,
+      "action": "MoveForward",
+      "action_result": "Moved to (3, 3)."
+    },
+    {
+      "step": 40,
+      "agent_pos": [
+        3,
+        3
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -39,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 41,
+      "agent_pos": [
+        3,
+        3
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -40,
+      "action": "MoveForward",
+      "action_result": "Moved to (4, 3)."
+    },
+    {
+      "step": 42,
+      "agent_pos": [
+        4,
+        3
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -41,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 43,
+      "agent_pos": [
+        4,
+        3
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -42,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 44,
+      "agent_pos": [
+        4,
+        3
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -43,
+      "action": "MoveForward",
+      "action_result": "Moved to (3, 3)."
+    },
+    {
+      "step": 45,
+      "agent_pos": [
+        3,
+        3
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -44,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 46,
+      "agent_pos": [
+        3,
+        3
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -45,
+      "action": "MoveForward",
+      "action_result": "Moved to (3, 4)."
+    },
+    {
+      "step": 47,
+      "agent_pos": [
+        3,
+        4
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -46,
+      "action": "MoveForward",
+      "action_result": "Moved to (3, 5)."
+    },
+    {
+      "step": 48,
+      "agent_pos": [
+        3,
+        5
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -47,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 49,
+      "agent_pos": [
+        3,
+        5
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -48,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 50,
+      "agent_pos": [
+        3,
+        5
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -49,
+      "action": "MoveForward",
+      "action_result": "Moved to (3, 4)."
+    },
+    {
+      "step": 51,
+      "agent_pos": [
+        3,
+        4
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -50,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 52,
+      "agent_pos": [
+        3,
+        4
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -51,
+      "action": "MoveForward",
+      "action_result": "Moved to (4, 4)."
+    },
+    {
+      "step": 53,
+      "agent_pos": [
+        4,
+        4
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -52,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 54,
+      "agent_pos": [
+        4,
+        4
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -53,
+      "action": "MoveForward",
+      "action_result": "Moved to (4, 5)."
+    },
+    {
+      "step": 55,
+      "agent_pos": [
+        4,
+        5
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -54,
+      "action": "MoveForward",
+      "action_result": "Moved to (4, 6)."
+    },
+    {
+      "step": 56,
+      "agent_pos": [
+        4,
+        6
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -55,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 57,
+      "agent_pos": [
+        4,
+        6
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -56,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 58,
+      "agent_pos": [
+        4,
+        6
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -57,
+      "action": "MoveForward",
+      "action_result": "Moved to (4, 5)."
+    },
+    {
+      "step": 59,
+      "agent_pos": [
+        4,
+        5
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -58,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 60,
+      "agent_pos": [
+        4,
+        5
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -59,
+      "action": "MoveForward",
+      "action_result": "Moved to (5, 5)."
+    },
+    {
+      "step": 61,
+      "agent_pos": [
+        5,
+        5
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -60,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 62,
+      "agent_pos": [
+        5,
+        5
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -61,
+      "action": "MoveForward",
+      "action_result": "Moved to (5, 4)."
+    },
+    {
+      "step": 63,
+      "agent_pos": [
+        5,
+        4
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -62,
+      "action": "MoveForward",
+      "action_result": "Moved to (5, 3)."
+    },
+    {
+      "step": 64,
+      "agent_pos": [
+        5,
+        3
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -63,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 65,
+      "agent_pos": [
+        5,
+        3
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -64,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 66,
+      "agent_pos": [
+        5,
+        3
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -65,
+      "action": "MoveForward",
+      "action_result": "Moved to (5, 4)."
+    },
+    {
+      "step": 67,
+      "agent_pos": [
+        5,
+        4
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -66,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 68,
+      "agent_pos": [
+        5,
+        4
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -67,
+      "action": "MoveForward",
+      "action_result": "Moved to (6, 4)."
+    },
+    {
+      "step": 69,
+      "agent_pos": [
+        6,
+        4
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -68,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 70,
+      "agent_pos": [
+        6,
+        4
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -69,
+      "action": "MoveForward",
+      "action_result": "Moved to (6, 5)."
+    },
+    {
+      "step": 71,
+      "agent_pos": [
+        6,
+        5
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -70,
+      "action": "MoveForward",
+      "action_result": "Moved to (6, 6)."
+    },
+    {
+      "step": 72,
+      "agent_pos": [
+        6,
+        6
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -71,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 73,
+      "agent_pos": [
+        6,
+        6
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -72,
+      "action": "MoveForward",
+      "action_result": "Moved to (5, 6)."
+    },
+    {
+      "step": 74,
+      "agent_pos": [
+        5,
+        6
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -73,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 75,
+      "agent_pos": [
+        5,
+        6
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -74,
+      "action": "MoveForward",
+      "action_result": "Moved to (5, 7)."
+    },
+    {
+      "step": 76,
+      "agent_pos": [
+        5,
+        7
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -75,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 77,
+      "agent_pos": [
+        5,
+        7
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -76,
+      "action": "MoveForward",
+      "action_result": "Moved to (6, 7)."
+    },
+    {
+      "step": 78,
+      "agent_pos": [
+        6,
+        7
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -77,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 79,
+      "agent_pos": [
+        6,
+        7
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -78,
+      "action": "MoveForward",
+      "action_result": "Moved to (6, 6)."
+    },
+    {
+      "step": 80,
+      "agent_pos": [
+        6,
+        6
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -79,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 81,
+      "agent_pos": [
+        6,
+        6
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -80,
+      "action": "MoveForward",
+      "action_result": "Moved to (7, 6)."
+    },
+    {
+      "step": 82,
+      "agent_pos": [
+        7,
+        6
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -81,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 83,
+      "agent_pos": [
+        7,
+        6
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -82,
+      "action": "MoveForward",
+      "action_result": "Moved to (7, 5)."
+    },
+    {
+      "step": 84,
+      "agent_pos": [
+        7,
+        5
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -83,
+      "action": "MoveForward",
+      "action_result": "Moved to (7, 4)."
+    },
+    {
+      "step": 85,
+      "agent_pos": [
+        7,
+        4
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -84,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 86,
+      "agent_pos": [
+        7,
+        4
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -85,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 87,
+      "agent_pos": [
+        7,
+        4
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -86,
+      "action": "MoveForward",
+      "action_result": "Moved to (7, 5)."
+    },
+    {
+      "step": 88,
+      "agent_pos": [
+        7,
+        5
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -87,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 89,
+      "agent_pos": [
+        7,
+        5
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -88,
+      "action": "MoveForward",
+      "action_result": "Moved to (8, 5)."
+    },
+    {
+      "step": 90,
+      "agent_pos": [
+        8,
+        5
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -89,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 91,
+      "agent_pos": [
+        8,
+        5
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -90,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 92,
+      "agent_pos": [
+        8,
+        5
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -91,
+      "action": "MoveForward",
+      "action_result": "Moved to (7, 5)."
+    },
+    {
+      "step": 93,
+      "agent_pos": [
+        7,
+        5
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -92,
+      "action": "MoveForward",
+      "action_result": "Moved to (6, 5)."
+    },
+    {
+      "step": 94,
+      "agent_pos": [
+        6,
+        5
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -93,
+      "action": "MoveForward",
+      "action_result": "Moved to (5, 5)."
+    },
+    {
+      "step": 95,
+      "agent_pos": [
+        5,
+        5
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -94,
+      "action": "MoveForward",
+      "action_result": "Moved to (4, 5)."
+    },
+    {
+      "step": 96,
+      "agent_pos": [
+        4,
+        5
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -95,
+      "action": "MoveForward",
+      "action_result": "Moved to (3, 5)."
+    },
+    {
+      "step": 97,
+      "agent_pos": [
+        3,
+        5
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -96,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 98,
+      "agent_pos": [
+        3,
+        5
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -97,
+      "action": "MoveForward",
+      "action_result": "Moved to (3, 4)."
+    },
+    {
+      "step": 99,
+      "agent_pos": [
+        3,
+        4
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -98,
+      "action": "MoveForward",
+      "action_result": "Moved to (3, 3)."
+    },
+    {
+      "step": 100,
+      "agent_pos": [
+        3,
+        3
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -99,
+      "action": "MoveForward",
+      "action_result": "Moved to (3, 2)."
+    },
+    {
+      "step": 101,
+      "agent_pos": [
+        3,
+        2
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -100,
+      "action": "MoveForward",
+      "action_result": "Moved to (3, 1)."
+    },
+    {
+      "step": 102,
+      "agent_pos": [
+        3,
+        1
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -101,
+      "action": "MoveForward",
+      "action_result": "Moved to (3, 0)."
+    },
+    {
+      "step": 103,
+      "agent_pos": [
+        3,
+        0
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -102,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 104,
+      "agent_pos": [
+        3,
+        0
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -103,
+      "action": "MoveForward",
+      "action_result": "Moved to (4, 0)."
+    },
+    {
+      "step": 105,
+      "agent_pos": [
+        4,
+        0
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -104,
+      "action": "MoveForward",
+      "action_result": "Moved to (5, 0)."
+    },
+    {
+      "step": 106,
+      "agent_pos": [
+        5,
+        0
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -105,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 107,
+      "agent_pos": [
+        5,
+        0
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -106,
+      "action": "MoveForward",
+      "action_result": "Moved to (5, 1)."
+    },
+    {
+      "step": 108,
+      "agent_pos": [
+        5,
+        1
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -107,
+      "action": "MoveForward",
+      "action_result": "Moved to (5, 2)."
+    },
+    {
+      "step": 109,
+      "agent_pos": [
+        5,
+        2
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -108,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 110,
+      "agent_pos": [
+        5,
+        2
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -109,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 111,
+      "agent_pos": [
+        5,
+        2
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -110,
+      "action": "MoveForward",
+      "action_result": "Moved to (5, 1)."
+    },
+    {
+      "step": 112,
+      "agent_pos": [
+        5,
+        1
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -111,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 113,
+      "agent_pos": [
+        5,
+        1
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -112,
+      "action": "MoveForward",
+      "action_result": "Moved to (6, 1)."
+    },
+    {
+      "step": 114,
+      "agent_pos": [
+        6,
+        1
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -113,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 115,
+      "agent_pos": [
+        6,
+        1
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -114,
+      "action": "MoveForward",
+      "action_result": "Moved to (6, 0)."
+    },
+    {
+      "step": 116,
+      "agent_pos": [
+        6,
+        0
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -115,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 117,
+      "agent_pos": [
+        6,
+        0
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -116,
+      "action": "MoveForward",
+      "action_result": "Moved to (7, 0)."
+    },
+    {
+      "step": 118,
+      "agent_pos": [
+        7,
+        0
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -117,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 119,
+      "agent_pos": [
+        7,
+        0
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -118,
+      "action": "MoveForward",
+      "action_result": "Moved to (7, 1)."
+    },
+    {
+      "step": 120,
+      "agent_pos": [
+        7,
+        1
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Stench"
+      ],
+      "score": -119,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 121,
+      "agent_pos": [
+        7,
+        1
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Stench"
+      ],
+      "score": -120,
+      "action": "MoveForward",
+      "action_result": "Moved to (6, 1)."
+    },
+    {
+      "step": 122,
+      "agent_pos": [
+        6,
+        1
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -121,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 123,
+      "agent_pos": [
+        6,
+        1
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -122,
+      "action": "MoveForward",
+      "action_result": "Moved to (6, 2)."
+    },
+    {
+      "step": 124,
+      "agent_pos": [
+        6,
+        2
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Stench",
+        "Breeze"
+      ],
+      "score": -123,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 125,
+      "agent_pos": [
+        6,
+        2
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Stench",
+        "Breeze"
+      ],
+      "score": -124,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 126,
+      "agent_pos": [
+        6,
+        2
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Stench",
+        "Breeze"
+      ],
+      "score": -125,
+      "action": "MoveForward",
+      "action_result": "Moved to (6, 1)."
+    },
+    {
+      "step": 127,
+      "agent_pos": [
+        6,
+        1
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -126,
+      "action": "MoveForward",
+      "action_result": "Moved to (6, 0)."
+    },
+    {
+      "step": 128,
+      "agent_pos": [
+        6,
+        0
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -127,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 129,
+      "agent_pos": [
+        6,
+        0
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -128,
+      "action": "MoveForward",
+      "action_result": "Moved to (7, 0)."
+    },
+    {
+      "step": 130,
+      "agent_pos": [
+        7,
+        0
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -129,
+      "action": "MoveForward",
+      "action_result": "Moved to (8, 0)."
+    },
+    {
+      "step": 131,
+      "agent_pos": [
+        8,
+        0
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -130,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 132,
+      "agent_pos": [
+        8,
+        0
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -131,
+      "action": "MoveForward",
+      "action_result": "Moved to (8, 1)."
+    },
+    {
+      "step": 133,
+      "agent_pos": [
+        8,
+        1
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -132,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 134,
+      "agent_pos": [
+        8,
+        1
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -133,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 135,
+      "agent_pos": [
+        8,
+        1
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -134,
+      "action": "MoveForward",
+      "action_result": "Moved to (8, 0)."
+    },
+    {
+      "step": 136,
+      "agent_pos": [
+        8,
+        0
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -135,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 137,
+      "agent_pos": [
+        8,
+        0
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -136,
+      "action": "MoveForward",
+      "action_result": "Moved to (9, 0)."
+    },
+    {
+      "step": 138,
+      "agent_pos": [
+        9,
+        0
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -137,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 139,
+      "agent_pos": [
+        9,
+        0
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -138,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 140,
+      "agent_pos": [
+        9,
+        0
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -139,
+      "action": "MoveForward",
+      "action_result": "Moved to (8, 0)."
+    },
+    {
+      "step": 141,
+      "agent_pos": [
+        8,
+        0
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -140,
+      "action": "MoveForward",
+      "action_result": "Moved to (7, 0)."
+    },
+    {
+      "step": 142,
+      "agent_pos": [
+        7,
+        0
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -141,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 143,
+      "agent_pos": [
+        7,
+        0
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -142,
+      "action": "MoveForward",
+      "action_result": "Moved to (7, 1)."
+    },
+    {
+      "step": 144,
+      "agent_pos": [
+        7,
+        1
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Stench"
+      ],
+      "score": -143,
+      "action": "Shoot",
+      "action_result": "You shot your arrow. You hear a terrible scream!"
+    },
+    {
+      "step": 145,
+      "agent_pos": [
+        7,
+        1
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Scream"
+      ],
+      "score": -153,
+      "action": "MoveForward",
+      "action_result": "Moved to (7, 2)."
+    },
+    {
+      "step": 146,
+      "agent_pos": [
+        7,
+        2
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -154,
+      "action": "MoveForward",
+      "action_result": "Moved to (7, 3)."
+    },
+    {
+      "step": 147,
+      "agent_pos": [
+        7,
+        3
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -155,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 148,
+      "agent_pos": [
+        7,
+        3
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -156,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 149,
+      "agent_pos": [
+        7,
+        3
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -157,
+      "action": "MoveForward",
+      "action_result": "Moved to (7, 2)."
+    },
+    {
+      "step": 150,
+      "agent_pos": [
+        7,
+        2
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -158,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 151,
+      "agent_pos": [
+        7,
+        2
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -159,
+      "action": "MoveForward",
+      "action_result": "Moved to (8, 2)."
+    },
+    {
+      "step": 152,
+      "agent_pos": [
+        8,
+        2
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -160,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 153,
+      "agent_pos": [
+        8,
+        2
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -161,
+      "action": "MoveForward",
+      "action_result": "Moved to (8, 3)."
+    },
+    {
+      "step": 154,
+      "agent_pos": [
+        8,
+        3
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -162,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 155,
+      "agent_pos": [
+        8,
+        3
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -163,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 156,
+      "agent_pos": [
+        8,
+        3
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -164,
+      "action": "MoveForward",
+      "action_result": "Moved to (8, 2)."
+    },
+    {
+      "step": 157,
+      "agent_pos": [
+        8,
+        2
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -165,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 158,
+      "agent_pos": [
+        8,
+        2
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -166,
+      "action": "MoveForward",
+      "action_result": "Moved to (9, 2)."
+    },
+    {
+      "step": 159,
+      "agent_pos": [
+        9,
+        2
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -167,
+      "action": "MoveForward",
+      "action_result": "Moved to (10, 2)."
+    },
+    {
+      "step": 160,
+      "agent_pos": [
+        10,
+        2
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -168,
+      "action": "MoveForward",
+      "action_result": "Moved to (11, 2)."
+    },
+    {
+      "step": 161,
+      "agent_pos": [
+        11,
+        2
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -169,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 162,
+      "agent_pos": [
+        11,
+        2
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -170,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 163,
+      "agent_pos": [
+        11,
+        2
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -171,
+      "action": "MoveForward",
+      "action_result": "Moved to (10, 2)."
+    },
+    {
+      "step": 164,
+      "agent_pos": [
+        10,
+        2
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -172,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 165,
+      "agent_pos": [
+        10,
+        2
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -173,
+      "action": "MoveForward",
+      "action_result": "Moved to (10, 1)."
+    },
+    {
+      "step": 166,
+      "agent_pos": [
+        10,
+        1
+      ],
+      "agent_dir": [
+        0,
+        -1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -174,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 167,
+      "agent_pos": [
+        10,
+        1
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -175,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 168,
+      "agent_pos": [
+        10,
+        1
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -176,
+      "action": "MoveForward",
+      "action_result": "Moved to (10, 2)."
+    },
+    {
+      "step": 169,
+      "agent_pos": [
+        10,
+        2
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -177,
+      "action": "MoveForward",
+      "action_result": "Moved to (10, 3)."
+    },
+    {
+      "step": 170,
+      "agent_pos": [
+        10,
+        3
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -178,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 171,
+      "agent_pos": [
+        10,
+        3
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -179,
+      "action": "MoveForward",
+      "action_result": "Moved to (9, 3)."
+    },
+    {
+      "step": 172,
+      "agent_pos": [
+        9,
+        3
+      ],
+      "agent_dir": [
+        -1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -180,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 173,
+      "agent_pos": [
+        9,
+        3
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [],
+      "score": -181,
+      "action": "MoveForward",
+      "action_result": "Moved to (9, 4)."
+    },
+    {
+      "step": 174,
+      "agent_pos": [
+        9,
+        4
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -182,
+      "action": "TurnRight",
+      "action_result": "Turned right."
+    },
+    {
+      "step": 175,
+      "agent_pos": [
+        9,
+        4
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Breeze"
+      ],
+      "score": -183,
+      "action": "MoveForward",
+      "action_result": "Moved to (10, 4)."
+    },
+    {
+      "step": 176,
+      "agent_pos": [
+        10,
+        4
+      ],
+      "agent_dir": [
+        1,
+        0
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Stench"
+      ],
+      "score": -184,
+      "action": "TurnLeft",
+      "action_result": "Turned left."
+    },
+    {
+      "step": 177,
+      "agent_pos": [
+        10,
+        4
+      ],
+      "agent_dir": [
+        0,
+        1
+      ],
+      "agent_has_gold": false,
+      "percepts": [
+        "Stench"
+      ],
+      "score": -185,
+      "action": "MoveForward",
+      "action_result": "Moved to (10, 5)."
+    }
+  ],
+  "final_state": {
+    "game_state": "Lost",
+    "score": -1186,
+    "steps_used": 177,
+    "agent_pos": [
+      10,
+      5
+    ],
+    "agent_has_gold": false,
+    "agent_known_map": [
+      [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [],
+        [],
+        [
+          "P"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [
+          "P"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [],
+        [
+          "P"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [
+          "W"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [],
+        [],
+        [
+          "P"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [
+          "P"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ]
+    ],
+    "true_map": [
+      [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [],
+        [],
+        [
+          "P"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          "W"
+        ],
+        [],
+        [],
+        [
+          "P"
+        ],
+        [],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          "P"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [
+          "P"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          "W"
+        ],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          "P"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          "P"
+        ]
+      ],
+      [
+        [],
+        [],
+        [],
+        [
+          "P"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          "P"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          "W"
+        ],
+        []
+      ],
+      [
+        [],
+        [],
+        [],
+        [],
+        [
+          "P"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          "P"
+        ],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [
+          "P"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          "P"
+        ],
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          "W"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          "P"
+        ],
+        []
+      ],
+      [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          "P"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [
+          "P"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          "W"
+        ],
+        [],
+        [],
+        [
+          "P"
+        ],
+        [],
+        []
+      ],
+      [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          "P"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [
+          "G"
+        ],
+        []
+      ],
+      [
+        [],
+        [],
+        [],
+        [],
+        [
+          "P"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          "P"
+        ],
+        [],
+        [],
+        [],
+        [
+          "W"
+        ]
+      ]
+    ]
+  }
+}
