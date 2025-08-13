@@ -30,73 +30,93 @@ class ContradictionRule(Rule):
 
 class WumpusResolutionRule(Rule):
     """
-    Applies resolution logic centered around 'pos'.
-    It checks if knowledge at 'pos' can help resolve ambiguity in its neighbors.
+    Applies resolution logic for Wumpuses.
+    A stench at a visited cell `pos` is caused by Wumpuses in adjacent cells.
+    If we can account for all but one of the neighbors, we can make a new deduction.
     """
     def apply(self, kb: KnowledgeBase, pos: tuple[int, int]) -> list[tuple[tuple[int, int], str]]:
         new_facts = []
         pos_facts = kb.get_facts(pos)
-        
-        # Check 1: A stench at 'pos' might resolve a neighbor.
+
+        # CHECK 1: A stench at 'pos' might resolve an unknown neighbor.
         if kb.visited[pos[0]][pos[1]] and F_HAS_STENCH in pos_facts:
             neighbors = kb.get_neighbors(pos)
             
-            unknown_neighbors = [
+            # Find all neighbors that could POSSIBLY be the source of the stench.
+            # A neighbor is a possible source if we haven't proven it's Wumpus-free.
+            potential_sources = [
                 n for n in neighbors
-                if (not kb.visited[n[0]][n[1]])
-                and F_WUMPUS not in kb.get_facts(n)
-                and F_NOT_WUMPUS not in kb.get_facts(n)
+                if F_NOT_WUMPUS not in kb.get_facts(n)
             ]
-            if len(unknown_neighbors) == 1:
-                the_one = unknown_neighbors[0]
+
+            # If, after eliminating safe neighbors, there is only ONE possible source left,
+            # then that source MUST be the Wumpus.
+            if len(potential_sources) == 1:
+                the_one = potential_sources[0]
+                # Only add the fact if it's new information.
                 if F_WUMPUS not in kb.get_facts(the_one):
                     new_facts.append((the_one, F_WUMPUS))
 
-        # Check 2: 'pos' being safe (-W) might resolve a neighboring stench.
-        if F_NOT_WUMPUS in pos_facts:
+        # CHECK 2: 'pos' being safe (-W) might help resolve a stench in a neighbor.
+        # This logic is for when new information about 'pos' (e.g., it's safe) is learned.
+        if kb.visited[pos[0]][pos[1]] and F_NOT_WUMPUS in pos_facts:
             for neighbor in kb.get_neighbors(pos):
-                neighbor_facts = kb.get_facts(neighbor)
-                if kb.visited[neighbor[0]][neighbor[1]] and F_HAS_STENCH in neighbor_facts:
-                    # Rerun the logic from the neighbor's perspective
+                # We only care about neighbors that we've visited and perceived a stench in.
+                if kb.visited[neighbor[0]][neighbor[1]] and F_HAS_STENCH in kb.get_facts(neighbor):
+                    # Now, re-evaluate from the neighbor's perspective.
                     other_neighbors = kb.get_neighbors(neighbor)
-                    unknown_sources = [
+                    
+                    potential_sources_for_neighbor = [
                         n for n in other_neighbors
-                        if (not kb.visited[n[0]][n[1]])
-                        and F_WUMPUS not in kb.get_facts(n)
-                        and F_NOT_WUMPUS not in kb.get_facts(n)
+                        if F_NOT_WUMPUS not in kb.get_facts(n)
                     ]
-
-                    if len(unknown_sources) == 1:
-                        the_one = unknown_sources[0]
+                    
+                    if len(potential_sources_for_neighbor) == 1:
+                        the_one = potential_sources_for_neighbor[0]
                         if F_WUMPUS not in kb.get_facts(the_one):
                             new_facts.append((the_one, F_WUMPUS))
+                            
         return new_facts
         
 class PitResolutionRule(Rule):
-    """Applies resolution logic for pits centered around 'pos'."""
+    """
+    Applies resolution logic for pits.
+    This is perfectly analogous to the WumpusResolutionRule.
+    """
     def apply(self, kb: KnowledgeBase, pos: tuple[int, int]) -> list[tuple[tuple[int, int], str]]:
         new_facts = []
         pos_facts = kb.get_facts(pos)
 
-        # Logic is analogous to WumpusResolutionRule
+        # CHECK 1: A breeze at 'pos' might resolve an unknown neighbor.
         if kb.visited[pos[0]][pos[1]] and F_HAS_BREEZE in pos_facts:
             neighbors = kb.get_neighbors(pos)
-            unknown_neighbors = [n for n in neighbors if F_PIT not in kb.get_facts(n) and F_NOT_PIT not in kb.get_facts(n)]
-            if len(unknown_neighbors) == 1:
-                the_one = unknown_neighbors[0]
+            
+            potential_sources = [
+                n for n in neighbors
+                if F_NOT_PIT not in kb.get_facts(n)
+            ]
+            
+            if len(potential_sources) == 1:
+                the_one = potential_sources[0]
                 if F_PIT not in kb.get_facts(the_one):
                     new_facts.append((the_one, F_PIT))
 
+        # CHECK 2: 'pos' being pit-free (-P) might help resolve a breeze in a neighbor.
         if F_NOT_PIT in pos_facts:
             for neighbor in kb.get_neighbors(pos):
-                neighbor_facts = kb.get_facts(neighbor)
-                if kb.visited[neighbor[0]][neighbor[1]] and F_HAS_BREEZE in neighbor_facts:
+                if kb.visited[neighbor[0]][neighbor[1]] and F_HAS_BREEZE in kb.get_facts(neighbor):
                     other_neighbors = kb.get_neighbors(neighbor)
-                    unknown_sources = [n for n in other_neighbors if F_PIT not in kb.get_facts(n) and F_NOT_PIT not in kb.get_facts(n)]
-                    if len(unknown_sources) == 1:
-                        the_one = unknown_sources[0]
+                    
+                    potential_sources_for_neighbor = [
+                        n for n in other_neighbors
+                        if F_NOT_PIT not in kb.get_facts(n)
+                    ]
+                    
+                    if len(potential_sources_for_neighbor) == 1:
+                        the_one = potential_sources_for_neighbor[0]
                         if F_PIT not in kb.get_facts(the_one):
                             new_facts.append((the_one, F_PIT))
+
         return new_facts
 
 class GlobalWumpusCountRule:

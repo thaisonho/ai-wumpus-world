@@ -3,6 +3,7 @@ from .agent_goal import AgentGoal
 from utils.constants import (
     ACTION_GRAB, ACTION_SHOOT, ACTION_CLIMB_OUT,
     ACTION_TURN_LEFT, ACTION_TURN_RIGHT, DIRECTIONS,
+    WUMPUS_MOVE_INTERVAL,
 )
 from .knowledge_base import (
     F_WUMPUS, F_DEAD_WUMPUS, F_POSSIBLE_WUMPUS, 
@@ -20,7 +21,8 @@ class StrategicPlanner:
     def __init__(self, pathfinding_module):
         self.pathfinder = pathfinding_module
 
-    def create_plan(self, agent, goal):
+    # Accept epoch info for time-aware planning.
+    def create_plan(self, agent, goal, actions_in_current_epoch=0):
         """
         The main method that generates a plan based on the agent's current goal.
         """
@@ -29,12 +31,11 @@ class StrategicPlanner:
         elif goal == AgentGoal.EXPLORE_SAFELY:
             return self._plan_explore_safely(agent)
         elif goal == AgentGoal.GET_UNSTUCK:
-            return self._plan_to_get_unstuck(agent)
+            return self._plan_to_get_unstuck(agent, actions_in_current_epoch)
         elif goal == AgentGoal.ESCAPE:
             return self._plan_escape(agent)
-        # Other goals like SHOOT_WUMPUS are now handled within GET_UNSTUCK
         return None
-
+    
     def _plan_return_home(self, agent):
         """Plans a path back to (0,0) to climb out."""
         if agent.agent_pos == (0, 0):
@@ -70,16 +71,17 @@ class StrategicPlanner:
         # Accept risks to escape.
         return self.pathfinder.find_path(agent.agent_pos, agent.agent_dir, (0, 0), kb_status, avoid_dangerous=False)
 
-    def _plan_to_get_unstuck(self, agent):
+    # Accept epoch info to make time-aware decisions.
+    def _plan_to_get_unstuck(self, agent, actions_in_current_epoch=0):
         """
         The supreme decision-making function for when the agent is trapped.
-        It evaluates all possible options (shooting or taking a risky move)
-        and selects the one with the highest "utility score".
-        This forces the agent to compare shooting vs. moving instead of just trying one after the other.
+        It evaluates options (shooting vs. risky move) and selects the one with the highest "utility score".
+        In moving wumpus mode, it penalizes long plans that might be interrupted.
         """
         options = []
         kb = agent.inference_module.kb
         kb_status = agent.inference_module.get_kb_status()
+        actions_left_in_epoch = WUMPUS_MOVE_INTERVAL - actions_in_current_epoch
 
         # --- 1. GATHER ALL POSSIBLE SHOOTING OPTIONS ---
         if agent.agent_has_arrow:
@@ -98,7 +100,7 @@ class StrategicPlanner:
                 safe_spots = [n for n in neighbors if kb_status[n[0]][n[1]] in ["Safe", "Visited"]]
                 for spot in safe_spots:
                     path = self.pathfinder.find_path(agent.agent_pos, agent.agent_dir, spot, kb_status, avoid_dangerous=True)
-                    if path:
+                    if path is not None:
                         # Calculate a utility score for this shooting action.
                         utility = 0
                         if F_WUMPUS in kb.get_facts(target):
@@ -108,6 +110,11 @@ class StrategicPlanner:
                             utility += 10 * self._calculate_wumpus_likelihood_score(agent, target)
                         
                         utility -= len(path)  # Subtract the cost of travel.
+                        
+                        # Penalize plans that are likely to be interrupted.
+                        if agent.is_moving_wumpus_mode and len(path) > actions_left_in_epoch:
+                            utility -= 50 # Heavy penalty for interruption risk.
+                        
                         options.append((utility, "shoot", (target, spot)))
 
         # --- 2. GATHER ALL RISKY MOVE OPTIONS ---
@@ -121,6 +128,11 @@ class StrategicPlanner:
                 utility = -50  # A large default penalty for taking a risk.
                 utility -= 20 * threat_score  # Add penalties based on surrounding threats (Breeze, Stench).
                 utility -= len(path)  # Subtract the cost of travel.
+                
+                # Penalize plans that are likely to be interrupted.
+                if agent.is_moving_wumpus_mode and len(path) > actions_left_in_epoch:
+                    utility -= 50 # Heavy penalty for interruption risk.
+                
                 options.append((utility, "move", path))
 
         # --- 3. COMPARE OPTIONS AND MAKE A DECISION ---
@@ -138,7 +150,7 @@ class StrategicPlanner:
             wumpus_pos, shooting_spot = details
             path_to_spot = self.pathfinder.find_path(agent.agent_pos, agent.agent_dir, shooting_spot, kb_status, avoid_dangerous=True)
             
-            if not path_to_spot: return None # Safety check.
+            if path_to_spot is None: return None # Safety check.
 
             # Logic to turn and face the target.
             final_agent_dir = agent.agent_dir

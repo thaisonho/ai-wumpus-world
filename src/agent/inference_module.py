@@ -10,7 +10,8 @@ from utils.constants import (
     PERCEPT_STENCH, 
     WUMPUS_SYMBOL, 
     PIT_SYMBOL, 
-    GOLD_SYMBOL
+    GOLD_SYMBOL,
+    ACTION_SHOOT
 )
 from .knowledge_base import (
     KnowledgeBase, 
@@ -42,7 +43,6 @@ class InferenceEngine:
     def __init__(self, knowledge_base: KnowledgeBase):
         self.kb = knowledge_base
         
-        # AGENDA-BASED REFACTOR: Rules are now categorized.
         self.local_rules: list[Rule] = [
             SafetyFromNoThreatsRule(),
             ContradictionRule(),
@@ -62,7 +62,43 @@ class InferenceEngine:
             for neighbor in self.kb.get_neighbors(pos):
                 agenda.append(neighbor)
 
-    def run_inference_cycle(self, current_pos, percepts, last_shoot_dir=None):
+    # Implement the knowledge reset logic.
+    def clear_volatile_knowledge(self):
+        """
+        Resets or downgrades knowledge that becomes unreliable when wumpuses move.
+        This is the core of adapting to the dynamic environment.
+        """
+        for x in range(self.kb.N):
+            for y in range(self.kb.N):
+                pos = (x, y)
+                facts = self.kb.get_facts(pos)
+                
+                # Cannot modify a set while iterating, so create a copy.
+                facts_to_process = list(facts) 
+                
+                # Check for permanently safe cells to avoid removing F_NOT_WUMPUS from them.
+                is_permanently_safe = (pos == (0,0)) or (F_DEAD_WUMPUS in facts)
+
+                for fact in facts_to_process:
+                    # Downgrade confirmed living wumpus to possible wumpus.
+                    if fact == F_WUMPUS and F_DEAD_WUMPUS not in facts:
+                        facts.remove(F_WUMPUS)
+                        facts.add(F_POSSIBLE_WUMPUS)
+
+                    # Remove stench percepts, as they are instantaneous.
+                    if fact == F_HAS_STENCH:
+                        facts.remove(F_HAS_STENCH)
+
+                    # Remove "not wumpus" fact unless the cell is permanently safe.
+                    if fact == F_NOT_WUMPUS and not is_permanently_safe:
+                        facts.remove(F_NOT_WUMPUS)
+                        # Also remove any F_SAFE that was derived from volatile facts.
+                        # This prevents F_SAFE from becoming permanent when it was inferred
+                        # only because of a previous 'no-stench' observation.
+                        if F_SAFE in facts:
+                            facts.remove(F_SAFE)
+
+    def run_inference_cycle(self, current_pos, percepts, last_action=None, last_shoot_dir=None, is_moving_wumpus_mode=True):
         """
         # AGENDA-BASED FORWARD-CHAINNING.
         1. Seeds the agenda with initial facts from percepts.
@@ -77,6 +113,18 @@ class InferenceEngine:
         # Handle special events first, they might add facts and update the agenda.
         if PERCEPT_SCREAM in percepts:
             self._handle_scream_event(current_pos, last_shoot_dir, agenda)
+        elif last_action == ACTION_SHOOT and not is_moving_wumpus_mode:
+            if last_shoot_dir:
+                sx, sy = current_pos
+                dx, dy = last_shoot_dir
+                
+                cx, cy = sx + dx, sy + dy
+                while self.kb._is_valid_coord(cx, cy):
+                    cell_to_clear = (cx, cy)
+                    self._add_fact_to_kb(cell_to_clear, F_NOT_WUMPUS, agenda)
+                    
+                    cx += dx
+                    cy += dy
 
         self._apply_percept_rules(current_pos, percepts, agenda)
         
@@ -100,10 +148,13 @@ class InferenceEngine:
                     for pos, fact in new_facts:
                         self._add_fact_to_kb(pos, fact, agenda)
 
-            # Now that local inference has stabilized, apply the global rule.
-            new_global_facts = self.global_rule.apply(self.kb)
-            for pos, fact in new_global_facts:
-                self._add_fact_to_kb(pos, fact, agenda)
+            # Conditionally apply the global rule.
+            # This rule is unsound in a dynamic environment.
+            if not is_moving_wumpus_mode:
+                # Now that local inference has stabilized, apply the global rule.
+                new_global_facts = self.global_rule.apply(self.kb)
+                for pos, fact in new_global_facts:
+                    self._add_fact_to_kb(pos, fact, agenda)
 
             # If the global rule produced new facts, the agenda is no longer empty,
             # and the outer loop will continue to process their consequences.
@@ -116,7 +167,8 @@ class InferenceEngine:
         neighbors = self.kb.get_neighbors(current_pos)
         
         if PERCEPT_STENCH not in percepts:
-            for n_pos in neighbors: self._add_fact_to_kb(n_pos, F_NOT_WUMPUS, agenda)
+            for n_pos in neighbors: 
+                self._add_fact_to_kb(n_pos, F_NOT_WUMPUS, agenda)
         else:
             self._add_fact_to_kb(current_pos, F_HAS_STENCH, agenda)
             for n_pos in neighbors:
@@ -136,46 +188,53 @@ class InferenceEngine:
             self.kb.gold_found_at = current_pos
 
     def _handle_scream_event(self, shooter_pos, shoot_dir, agenda):
-        # If no living Wumpus left, nothing to do.
         if self.kb.known_wumpus_count == 0:
             return
 
-        # We heard a scream: one living Wumpus has died. Decrement immediately.
-        # (This ensures we account for the death even if we cannot localize.)
         self.kb.known_wumpus_count = max(0, self.kb.known_wumpus_count - 1)
 
-        # If shooting direction unknown, we cannot localize — just return.
         if not shoot_dir:
             return
 
-        # Start from the cell next to shooter.
-        wx, wy = shooter_pos
-        wx += shoot_dir[0]; wy += shoot_dir[1]
+        candidates = []
+        unknowns = []
+        
+        cx, cy = shooter_pos
+        cx += shoot_dir[0]; cy += shoot_dir[1]
 
-        localized = False
-        while self.kb._is_valid_coord(wx, wy):
-            pos = (wx, wy)
+        while self.kb._is_valid_coord(cx, cy):
+            pos = (cx, cy)
             facts = self.kb.get_facts(pos)
+            
+            if F_DEAD_WUMPUS not in facts:
+                if F_WUMPUS in facts or F_POSSIBLE_WUMPUS in facts and F_SAFE not in facts:
+                    candidates.append(pos)
+                elif F_NOT_WUMPUS not in facts:
+                    unknowns.append(pos)
+            
+            cx += shoot_dir[0]
+            cy += shoot_dir[1]
 
-            # Candidate if this cell is NOT proven to be Wumpus-free and not already dead.
-            # This treats unknown cells as potential real targets (correct for arrow semantics).
-            if F_NOT_WUMPUS not in facts and F_DEAD_WUMPUS not in facts:
-                # Localize the killed Wumpus here.
-                self._add_fact_to_kb(pos, F_WUMPUS, agenda)
-                self._add_fact_to_kb(pos, F_DEAD_WUMPUS, agenda)
+        dead_wumpus_pos = None
+        if candidates:
+            dead_wumpus_pos = candidates[0]
+        elif unknowns:
+            dead_wumpus_pos = unknowns[0]
+        
+        if dead_wumpus_pos:
+            facts = self.kb.get_facts(dead_wumpus_pos)
+            
+            facts.discard(F_WUMPUS)
+            facts.discard(F_POSSIBLE_WUMPUS)
 
-                # Explain/remove stench where appropriate.
-                self._explain_stenches_by_dead(pos, agenda)
+            self._add_fact_to_kb(dead_wumpus_pos, F_DEAD_WUMPUS, agenda)
+            self._add_fact_to_kb(dead_wumpus_pos, F_SAFE, agenda)
+            self._add_fact_to_kb(dead_wumpus_pos, F_NOT_WUMPUS, agenda)
+            self._add_fact_to_kb(dead_wumpus_pos, F_NOT_PIT, agenda)
 
-                localized = True
-                break
-
-            wx += shoot_dir[0]
-            wy += shoot_dir[1]
-
-        if not localized:
-            pass
-
+            self.kb.kb_status[dead_wumpus_pos[0]][dead_wumpus_pos[1]] = "Safe"
+            
+            self._explain_stenches_by_dead(dead_wumpus_pos, agenda)
 
     def _explain_stenches_by_dead(self, dead_pos, agenda):
         """
@@ -209,7 +268,7 @@ class InferenceEngine:
                 agenda.append(neighbor)
 
 
-# It acts as a facade, so the agent doesn't need to know about the internal changes.
+# This class acts as a facade, so the agent doesn't need to know about the internal changes.
 class InferenceModule:
     """
     Acts as the "Manager" and a "Facade" for the entire reasoning system.
@@ -218,11 +277,18 @@ class InferenceModule:
         self.kb = KnowledgeBase(N, K)
         self.engine = InferenceEngine(self.kb)
 
-    def update_knowledge(self, current_pos, percepts, last_action=None, last_shoot_dir=None):
-        self.kb.mark_visited(current_pos)
-        self.engine.run_inference_cycle(current_pos, percepts, last_shoot_dir)
-        self._update_kb_status_map()
+    # Add the entry point for epoch transition logic.
+    def on_new_epoch_starts(self):
+        """Called by the agent when a wumpus movement phase has passed."""
+        self.engine.clear_volatile_knowledge()
+        self._update_kb_status_map() # Refresh the high-level map after clearing knowledge.
 
+    # Accept the mode flag.
+    def update_knowledge(self, current_pos, percepts, last_action=None, last_shoot_dir=None, is_moving_wumpus_mode=False):
+        self.kb.mark_visited(current_pos)
+        self.engine.run_inference_cycle(current_pos, percepts, last_action, last_shoot_dir, is_moving_wumpus_mode)
+        self._update_kb_status_map()
+    
     def _update_kb_status_map(self):
         for x in range(self.kb.N):
             for y in range(self.kb.N):
@@ -231,7 +297,7 @@ class InferenceModule:
                     self.kb.kb_status[x][y] = "Visited"
                     continue
                 facts = self.kb.get_facts(pos)
-                if F_SAFE in facts:
+                if F_SAFE in facts or F_DEAD_WUMPUS in facts:
                     self.kb.kb_status[x][y] = "Safe"
                 elif (F_WUMPUS in facts and F_DEAD_WUMPUS not in facts) or F_PIT in facts:
                     self.kb.kb_status[x][y] = "Dangerous"
@@ -249,8 +315,8 @@ class InferenceModule:
         for r in range(self.kb.N):
             for c in range(self.kb.N):
                 facts = self.kb.get_facts((r, c))
-                if F_WUMPUS in facts and F_DEAD_WUMPUS not in facts: 
-                    known_map[r][c].add(WUMPUS_SYMBOL)
+                if F_WUMPUS in facts and F_DEAD_WUMPUS not in facts:
+                    known_map[r][c].add(WUMPUS_SYMBOL)                
                 if F_PIT in facts: 
                     known_map[r][c].add(PIT_SYMBOL)
                 if F_GOLD in facts: 

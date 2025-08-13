@@ -1,4 +1,4 @@
-# wumpus_world/agent/agent.py
+# src/agent/agent.py
 
 from .inference_module import InferenceModule 
 from .pathfinding_module import PathfindingModule # Class name changed
@@ -6,8 +6,7 @@ from .planning_module import StrategicPlanner    # New strategic module
 from .agent_goal import AgentGoal                # Enum in a separate file
 
 
-from utils.constants import N_DEFAULT, K_DEFAULT, PERCEPT_GLITTER, ACTION_MOVE_FORWARD, ACTION_TURN_LEFT, ACTION_TURN_RIGHT, ACTION_SHOOT, ACTION_GRAB, ACTION_CLIMB_OUT
-from utils.constants import DIRECTIONS, EAST
+from utils.constants import N_DEFAULT, K_DEFAULT, PERCEPT_GLITTER, ACTION_MOVE_FORWARD, ACTION_TURN_LEFT, ACTION_TURN_RIGHT, ACTION_SHOOT, ACTION_GRAB, ACTION_CLIMB_OUT, DIRECTIONS, EAST, WUMPUS_MOVE_INTERVAL
 
 
 class WumpusWorldAgent:
@@ -15,9 +14,12 @@ class WumpusWorldAgent:
     A multi-strategy agent that acts as a high-level 'Director', making strategic decisions.
     Detailed action planning is delegated to the StrategicPlanner.
     """
-    def __init__(self, N=N_DEFAULT, K=K_DEFAULT):
+    def __init__(self, N=N_DEFAULT, K=K_DEFAULT, is_moving_wumpus_mode=False):
         self.N = N
         self.K = K
+        self.is_moving_wumpus_mode = is_moving_wumpus_mode
+        self.actions_in_current_epoch = 0
+        
         # Functional modules owned by the Agent
         self.inference_module = InferenceModule(N, K)
         self.pathfinding_module = PathfindingModule(N)
@@ -27,11 +29,16 @@ class WumpusWorldAgent:
         self.agent_pos, self.agent_dir = (0, 0), EAST
         self.agent_has_gold, self.agent_has_arrow = False, True
         self.score = 0
+        self.actions_in_current_epoch = 0
 
         # Planning and goal state
         self.path_to_follow = []
         self.current_goal = AgentGoal.EXPLORE_SAFELY
         self.last_action, self.last_shoot_dir = None, None
+    
+    def increment_epoch_counter(self):
+        """Increments the action counter for the current epoch."""
+        self.actions_in_current_epoch += 1
 
     def update_state(self, env_state):
         """Synchronizes the agent's internal state with the environment's state."""
@@ -83,8 +90,21 @@ class WumpusWorldAgent:
 
     def decide_action(self, percepts):
         """The main decision-making loop of the agent."""
+        # Handle epoch transitions at the beginning of a decision cycle.
+        if self.is_moving_wumpus_mode and self.actions_in_current_epoch >= WUMPUS_MOVE_INTERVAL:
+            # A wumpus movement phase has just occurred. Reset knowledge.
+            self.actions_in_current_epoch = 0
+            self.inference_module.on_new_epoch_starts()
+            # print("DEBUG: New epoch started. Knowledge reset.")
+
         # 1. THINK: Update the knowledge base with new information.
-        self.inference_module.update_knowledge(self.agent_pos, percepts, self.last_action, self.last_shoot_dir)
+        self.inference_module.update_knowledge(
+            self.agent_pos, 
+            percepts, 
+            self.last_action, 
+            self.last_shoot_dir, 
+            self.is_moving_wumpus_mode
+        )
 
         # The shooting direction is a one-time piece of information for the inference engine. Clear it after use.
         self.last_shoot_dir = None
@@ -111,50 +131,61 @@ class WumpusWorldAgent:
         # 2. REFLEX: Handle high-priority, immediate actions.
         # Grabbing glitter is a non-negotiable, immediate action that overrides any plan.
         if PERCEPT_GLITTER in percepts:
-            return ACTION_GRAB
+            self.path_to_follow = []  
+            self.last_action = ACTION_GRAB
+            return self.last_action
 
+        if self.agent_has_gold and not self.path_to_follow:
+            path_home = self.strategic_planner.create_plan(self, AgentGoal.RETURN_HOME)
+            if path_home:
+                self.path_to_follow = path_home
+            else:
+                self.last_action = ACTION_CLIMB_OUT if self.agent_pos == (0, 0) else ACTION_TURN_RIGHT
+                return self.last_action
+            
         # 3. EXECUTE PLAN: If a valid plan exists, follow it.
         if self.path_to_follow:
             self.last_action = self.path_to_follow.pop(0)
             return self.last_action
 
-        # 4. DECIDE & RE-PLAN: If there's no active plan, determine a new goal and create a plan.
+        # 4. DECIDE & RE-PLAN: If there's no active plan, determine a new goal base on curent knowledge and create a plan.
         self._determine_next_goal()
-        new_path = self.strategic_planner.create_plan(self, self.current_goal)
+        new_path = self.strategic_planner.create_plan(
+            self, 
+            self.current_goal, 
+            self.actions_in_current_epoch
+        )
 
         if new_path:
             self.path_to_follow = new_path
             self.last_action = self.path_to_follow.pop(0)
             return self.last_action
 
-        # 5. FALLBACK ACTION: If all else fails, perform a default action.
-        # This prevents the agent from getting stuck. Climb if at the start, otherwise turn.
+        # 5. FALLBACK ACTION
         self.last_action = ACTION_CLIMB_OUT if self.agent_pos == (0, 0) else ACTION_TURN_RIGHT
         return self.last_action
 
     def _determine_next_goal(self):
         """Strategically determines the next high-level goal based on the agent's current state and knowledge."""
-        if self.agent_has_gold:
-            self.current_goal = AgentGoal.RETURN_HOME
+        plan_to_explore = self.strategic_planner.create_plan(
+            self,
+            AgentGoal.EXPLORE_SAFELY,
+            self.actions_in_current_epoch
+        )
+        if plan_to_explore:
+            self.current_goal = AgentGoal.EXPLORE_SAFELY
             return
 
-        kb_status = self.inference_module.get_kb_status()
-        visited_cells = self.inference_module.get_visited_cells()
-        safe_unvisited_cells = [(x, y) for x in range(self.N) for y in range(self.N) if kb_status[x][y] == "Safe" and not visited_cells[x][y]]
-
-        # Priority 1: If there are guaranteed safe cells to explore, do that.
-        if safe_unvisited_cells:
-            self.current_goal = AgentGoal.EXPLORE_SAFELY
-        else:
-            # Priority 2: If there are no safe options, the agent is "stuck".
-            # Delegate the hard choice (shoot vs. risky move) to the planner.
+        plan_to_get_unstuck = self.strategic_planner.create_plan(
+            self,
+            AgentGoal.GET_UNSTUCK,
+            self.actions_in_current_epoch
+        )
+        if plan_to_get_unstuck:
             self.current_goal = AgentGoal.GET_UNSTUCK
-            
-        # Safeguard: If the planner can't find a way to get unstuck, the final goal is to escape.
-        # This check is done to ensure we always have a goal if GET_UNSTUCK returns no plan.
-        plan = self.strategic_planner.create_plan(self, self.current_goal)
-        if not plan:
-            self.current_goal = AgentGoal.ESCAPE
+            return
+
+        self.current_goal = AgentGoal.ESCAPE
 
     def get_known_map(self):
         """Returns the map of definitively known items (Wumpus, Pit, Gold)."""

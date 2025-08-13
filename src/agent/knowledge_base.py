@@ -11,7 +11,6 @@ F_NOT_WUMPUS, F_NOT_PIT = "-W", "-P"
 # Tentative facts: A possibility that has not been confirmed or denied.
 F_POSSIBLE_WUMPUS, F_POSSIBLE_PIT = "W?", "P?"
 
-# --- ADDED: New constants for percepts and Wumpus state ---
 F_HAS_STENCH = "HasStench"  # Fact that a cell has a stench percept
 F_HAS_BREEZE = "HasBreeze"  # Fact that a cell has a breeze percept
 F_DEAD_WUMPUS = "DeadW"     # Fact that a Wumpus in this cell is confirmed dead

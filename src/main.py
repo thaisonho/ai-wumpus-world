@@ -11,6 +11,7 @@ from utils.constants import (
     GAME_STATE_LOST,
 )
 
+from debug_enviroment import DebugWumpusWorldEnvironment
 
 def get_user_config():
     """Prompts the user for simulation settings."""
@@ -26,7 +27,7 @@ def get_user_config():
         return N_DEFAULT, K_DEFAULT, P_DEFAULT, 0.3
 
 
-def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3, moving_wumpus=False):
+def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3, moving_wumpus=False, use_debug_map=False):
     """
     Initializes and runs a Wumpus World simulation.
 
@@ -36,9 +37,18 @@ def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3, moving_wump
         p (float): The probability of a pit in any given cell.
         delay (float): The delay in seconds between simulation steps for visualization.
     """
-    EnvClass = AdvancedWumpusWorldEnvironment if moving_wumpus else WumpusWorldEnvironment
-    env = EnvClass(N, K, p)
-    agent = WumpusWorldAgent(N)
+    if use_debug_map:
+        # Sử dụng bản đồ cố định để gỡ lỗi
+        print("--- RUNNING IN DEBUG MODE WITH FIXED MAP ---")
+        env = DebugWumpusWorldEnvironment(N, K, p)
+        # Kích thước của bản đồ gỡ lỗi là 6x6
+        N = 6
+    else:
+        # Sử dụng các môi trường ngẫu nhiên như bình thường
+        EnvClass = AdvancedWumpusWorldEnvironment if moving_wumpus else WumpusWorldEnvironment
+        env = EnvClass(N, K, p)
+        
+    agent = WumpusWorldAgent(N, K, is_moving_wumpus_mode=moving_wumpus)
     display = WumpusWorldDisplay(N)
 
     step_count = 0
@@ -60,17 +70,23 @@ def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3, moving_wump
             agent_pos=agent.agent_pos,
             agent_dir=agent.agent_dir,
             agent_has_gold=agent.agent_has_gold,
+            agent_has_arrow=agent.agent_has_arrow,
             score=agent.score,
             percepts=current_percepts,
             message=f"Step {step_count}: Agent is thinking...",
+            true_map=env.get_true_map()
         )
         display.pause(delay)
 
         # 3. Agent makes a decision
+        #agent._determine_next_goal()
         chosen_action = agent.decide_action(current_percepts)
 
         # 4. The environment processes the action
         action_message = env.apply_action(chosen_action)
+        # CRUCIAL: Let the agent know an action has been successfully executed
+        if agent.is_moving_wumpus_mode:
+            agent.increment_epoch_counter()
 
         # 5. Sync the agent's state and display the result of the action
         env_state = env.get_current_state()
@@ -82,9 +98,11 @@ def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3, moving_wump
             agent_pos=agent.agent_pos,
             agent_dir=agent.agent_dir,
             agent_has_gold=agent.agent_has_gold,
+            agent_has_arrow=agent.agent_has_arrow,
             score=agent.score,
             percepts=env.last_percepts,  # Use last_percepts to include bumps
             message=f"Step {step_count}: Action: {chosen_action}. Result: {action_message}",
+            true_map=env.get_true_map(),
         )
         display.pause(delay)
 
@@ -106,9 +124,11 @@ def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3, moving_wump
         agent_pos=agent.agent_pos,
         agent_dir=agent.agent_dir,
         agent_has_gold=agent.agent_has_gold,
+        agent_has_arrow=agent.agent_has_arrow,
         score=agent.score,
         percepts=env.last_percepts,
         message=final_message,
+        true_map=env.get_true_map(),
     )
     print(f"\nFinal Score: {env_state['score']}")
     print(f"Game State: {env_state['game_state']}")
@@ -117,5 +137,9 @@ def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3, moving_wump
 
 
 if __name__ == "__main__":
-    N, K, p, delay, moving = get_user_config()
-    run_simulation(N=N, K=K, p=p, delay=delay, moving_wumpus=moving)
+    use_debug = input("Use the fixed debug map to test the infinite loop scenario? (Y/n): ").strip().lower()
+    if use_debug in {"y", "yes", ""}:
+        run_simulation(use_debug_map=True, delay=0.5) 
+    else:
+        N, K, p, delay, moving = get_user_config()
+        run_simulation(N=N, K=K, p=p, delay=delay, moving_wumpus=moving)
