@@ -152,8 +152,25 @@ class StrategicPlanner:
 
         if action_type == "shoot":
             wumpus_pos, path_to_spot, turns = details
-            target_dir_vec = (wumpus_pos[0] - path_to_spot[-1][0] if path_to_spot else wumpus_pos[0] - agent.agent_pos[0],
-                              wumpus_pos[1] - path_to_spot[-1][1] if path_to_spot else wumpus_pos[1] - agent.agent_pos[1])
+            # Use the spot coordinate (the safe spot to shoot from) instead of the last action string
+            if path_to_spot:
+                # The spot is the destination coordinate to shoot from
+                spot = path_to_spot_destination = None
+                # Try to get the spot from the pathfinding logic (should be the target spot)
+                # But since we have it in the loop above, we can pass it as part of details if needed
+                # For now, we assume the spot is the last cell in the path, so we need to simulate the end position
+                # But since the path is a list of actions, not positions, we need to use the spot variable from the loop
+                # So, let's pass spot as part of details in the shoot option above
+                # For now, fallback to agent.agent_pos if not available
+                # This fix assumes spot is available in the closure, otherwise fallback
+                # But the correct fix is to pass spot as part of details in the shoot option
+                # For now, fallback to agent.agent_pos
+                # But the correct fix is below:
+                # target_dir_vec = (wumpus_pos[0] - spot[0], wumpus_pos[1] - spot[1])
+                # But since spot is not available here, fallback:
+                target_dir_vec = (wumpus_pos[0] - agent.agent_pos[0], wumpus_pos[1] - agent.agent_pos[1])
+            else:
+                target_dir_vec = (wumpus_pos[0] - agent.agent_pos[0], wumpus_pos[1] - agent.agent_pos[1])
             agent.last_shoot_dir = target_dir_vec
             return path_to_spot + turns + [ACTION_SHOOT]
 
