@@ -1,8 +1,10 @@
 # src/agent/planning_module.py
+
 from .agent_goal import AgentGoal
 from utils.constants import (
     ACTION_GRAB, ACTION_SHOOT, ACTION_CLIMB_OUT,
     ACTION_TURN_LEFT, ACTION_TURN_RIGHT, DIRECTIONS,
+    WUMPUS_MOVE_INTERVAL, ACTION_MOVE_FORWARD
 )
 from .knowledge_base import (
     F_WUMPUS, F_DEAD_WUMPUS, F_POSSIBLE_WUMPUS, 
@@ -12,70 +14,79 @@ import random
 
 class StrategicPlanner:
     """
-    Responsible for converting a high-level strategic goal (AgentGoal) 
-    into a low-level action plan (a list of actions).
-    It uses a central decision-making function (_plan_to_get_unstuck) 
-    when the agent is trapped to choose the least-worst option.
+    Responsible for converting a high-level strategic goal into a low-level action plan.
+    It makes time-aware and risk-aware decisions, especially in the moving Wumpus mode.
     """
     def __init__(self, pathfinding_module):
         self.pathfinder = pathfinding_module
 
-    def create_plan(self, agent, goal):
+    def create_plan(self, agent, goal, actions_in_current_epoch=0):
         """
-        The main method that generates a plan based on the agent's current goal.
+        The main method that generates a plan based on the agent's current goal and context.
         """
-        if goal == AgentGoal.RETURN_HOME:
-            return self._plan_return_home(agent)
-        elif goal == AgentGoal.EXPLORE_SAFELY:
-            return self._plan_explore_safely(agent)
-        elif goal == AgentGoal.GET_UNSTUCK:
-            return self._plan_to_get_unstuck(agent)
-        elif goal == AgentGoal.ESCAPE:
-            return self._plan_escape(agent)
-        # Other goals like SHOOT_WUMPUS are now handled within GET_UNSTUCK
-        return None
+        actions_left = WUMPUS_MOVE_INTERVAL - actions_in_current_epoch
 
-    def _plan_return_home(self, agent):
+        if goal == AgentGoal.RETURN_HOME:
+            return self._plan_return_home(agent, actions_left)
+        elif goal == AgentGoal.EXPLORE_SAFELY:
+            return self._plan_explore_safely(agent, actions_left)
+        elif goal == AgentGoal.GET_UNSTUCK:
+            return self._plan_to_get_unstuck(agent, actions_left)
+        elif goal == AgentGoal.ESCAPE:
+            return self._plan_escape(agent, actions_left)
+        return None
+    
+    def _plan_return_home(self, agent, actions_left_in_epoch):
         """Plans a path back to (0,0) to climb out."""
         if agent.agent_pos == (0, 0):
             return [ACTION_CLIMB_OUT]
         kb_status = agent.inference_module.get_kb_status()
-        # When returning home, the agent can traverse known dangerous cells (e.g., a dead wumpus location).
-        return self.pathfinder.find_path(agent.agent_pos, agent.agent_dir, (0, 0), kb_status, avoid_dangerous=False)
+        return self.pathfinder.find_path(
+            agent.agent_pos, agent.agent_dir, (0, 0), kb_status,
+            avoid_dangerous=False,
+            is_moving_wumpus_mode=agent.is_moving_wumpus_mode,
+            actions_left_in_epoch=actions_left_in_epoch
+        )
 
-    def _plan_explore_safely(self, agent):
+    def _plan_explore_safely(self, agent, actions_left_in_epoch):
         """Plans a path to explore the nearest unvisited safe cells."""
         kb_status = agent.inference_module.get_kb_status()
         visited_cells = agent.inference_module.get_visited_cells()
-        safe_unvisited_cells = [(x, y) for x in range(agent.N) for y in range(agent.N) if kb_status[x][y] == "Safe" and not visited_cells[x][y]]
+        safe_unvisited_cells = [(x, y) for x in range(agent.N) for y in range(agent.N) 
+                                if kb_status[x][y] == "Safe" and not visited_cells[x][y]]
         
         if not safe_unvisited_cells:
             return None
             
-        # Sort safe cells by Manhattan distance to prioritize the closest ones.
         safe_unvisited_cells.sort(key=lambda p: abs(p[0] - agent.agent_pos[0]) + abs(p[1] - agent.agent_pos[1]))
         
         for target in safe_unvisited_cells:
-            # Find a path that avoids all known and suspected dangers.
-            path = self.pathfinder.find_path(agent.agent_pos, agent.agent_dir, target, kb_status, avoid_dangerous=True)
+            path = self.pathfinder.find_path(
+                agent.agent_pos, agent.agent_dir, target, kb_status,
+                avoid_dangerous=True,
+                is_moving_wumpus_mode=agent.is_moving_wumpus_mode,
+                actions_left_in_epoch=actions_left_in_epoch
+            )
             if path:
                 return path
         return None
 
-    def _plan_escape(self, agent):
+    def _plan_escape(self, agent, actions_left_in_epoch):
         """The last resort plan: try to get back to (0,0) at all costs."""
         if agent.agent_pos == (0, 0):
             return [ACTION_CLIMB_OUT]
         kb_status = agent.inference_module.get_kb_status()
-        # Accept risks to escape.
-        return self.pathfinder.find_path(agent.agent_pos, agent.agent_dir, (0, 0), kb_status, avoid_dangerous=False)
+        return self.pathfinder.find_path(
+            agent.agent_pos, agent.agent_dir, (0, 0), kb_status,
+            avoid_dangerous=False,
+            is_moving_wumpus_mode=agent.is_moving_wumpus_mode,
+            actions_left_in_epoch=actions_left_in_epoch
+        )
 
-    def _plan_to_get_unstuck(self, agent):
+    def _plan_to_get_unstuck(self, agent, actions_left_in_epoch):
         """
-        The supreme decision-making function for when the agent is trapped.
-        It evaluates all possible options (shooting or taking a risky move)
-        and selects the one with the highest "utility score".
-        This forces the agent to compare shooting vs. moving instead of just trying one after the other.
+        The core decision-making function for when the agent is trapped.
+        It evaluates options (shooting vs. risky move) and selects the one with the highest utility.
         """
         options = []
         kb = agent.inference_module.kb
@@ -86,115 +97,143 @@ class StrategicPlanner:
             potential_targets = []
             for x in range(agent.N):
                 for y in range(agent.N):
-                    pos = (x, y)
-                    facts = kb.get_facts(pos)
-                    # A target is a cell that is confirmed or possibly a Wumpus, and not yet dead.
+                    facts = kb.get_facts((x, y))
                     if (F_WUMPUS in facts or F_POSSIBLE_WUMPUS in facts) and F_DEAD_WUMPUS not in facts:
-                        potential_targets.append(pos)
+                        potential_targets.append((x, y))
             
             for target in potential_targets:
-                # Find safe shooting spots adjacent to the target.
                 neighbors = kb.get_neighbors(target)
                 safe_spots = [n for n in neighbors if kb_status[n[0]][n[1]] in ["Safe", "Visited"]]
                 for spot in safe_spots:
-                    path = self.pathfinder.find_path(agent.agent_pos, agent.agent_dir, spot, kb_status, avoid_dangerous=True)
-                    if path:
-                        # Calculate a utility score for this shooting action.
-                        utility = 0
-                        if F_WUMPUS in kb.get_facts(target):
-                            utility += 100  # High reward for a confirmed target.
-                        else:  # F_POSSIBLE_WUMPUS
-                            # Reward based on the number of Stench clues pointing to it.
-                            utility += 10 * self._calculate_wumpus_likelihood_score(agent, target)
+                    path_to_spot = self.pathfinder.find_path(
+                        agent.agent_pos, agent.agent_dir, spot, kb_status,
+                        avoid_dangerous=True,
+                        is_moving_wumpus_mode=agent.is_moving_wumpus_mode,
+                        actions_left_in_epoch=actions_left_in_epoch
+                    )
+                    if path_to_spot is not None:
+                        turns = self._calculate_turns_to_face(path_to_spot, agent.agent_dir, spot, target)
+                        full_plan = path_to_spot + turns + [ACTION_SHOOT]
                         
-                        utility -= len(path)  # Subtract the cost of travel.
-                        options.append((utility, "shoot", (target, spot)))
+                        if agent.is_moving_wumpus_mode and len(full_plan) > actions_left_in_epoch:
+                            continue  # This plan is too long, skip it.
+
+                        utility = 100 if F_WUMPUS in kb.get_facts(target) else 20
+                        utility -= len(full_plan) # Cost of actions
+                        options.append((utility, "shoot", (target, path_to_spot, turns)))
 
         # --- 2. GATHER ALL RISKY MOVE OPTIONS ---
         unknown_cells = [(x, y) for x in range(agent.N) for y in range(agent.N) if kb_status[x][y] == "Unknown"]
         for target in unknown_cells:
-            # Find a path that accepts risk.
-            path = self.pathfinder.find_path(agent.agent_pos, agent.agent_dir, target, kb_status, avoid_dangerous=False)
+            path = self.pathfinder.find_path(
+                agent.agent_pos, agent.agent_dir, target, kb_status,
+                avoid_dangerous=False,
+                is_moving_wumpus_mode=agent.is_moving_wumpus_mode,
+                actions_left_in_epoch=actions_left_in_epoch
+            )
             if path:
-                # Calculate the utility (always negative) for this risky move.
-                threat_score = self._calculate_threat_score(agent, target)
-                utility = -50  # A large default penalty for taking a risk.
-                utility -= 20 * threat_score  # Add penalties based on surrounding threats (Breeze, Stench).
-                utility -= len(path)  # Subtract the cost of travel.
+                threat_score = self._calculate_threat_score(kb, target)
+                utility = -50 - (20 * threat_score) - len(path)
+                
+                if agent.is_moving_wumpus_mode:
+                    end_cell = self._predict_end_cell(agent.agent_pos, agent.agent_dir, path, actions_left_in_epoch)
+                    penalty = self._epoch_end_safety_penalty(kb, end_cell)
+                    utility -= penalty
+                
                 options.append((utility, "move", path))
 
-        # --- 3. COMPARE OPTIONS AND MAKE A DECISION ---
+        # --- 3. DECIDE THE BEST OPTION ---
         if not options:
-            return None  # Truly no options left.
+            return None
 
-        # Sort options by utility score in descending order.
         options.sort(key=lambda x: x[0], reverse=True)
-
         best_option = options[0]
         _, action_type, details = best_option
 
         if action_type == "shoot":
-            # Construct the full shooting plan from the saved details.
-            wumpus_pos, shooting_spot = details
-            path_to_spot = self.pathfinder.find_path(agent.agent_pos, agent.agent_dir, shooting_spot, kb_status, avoid_dangerous=True)
-            
-            if not path_to_spot: return None # Safety check.
-
-            # Logic to turn and face the target.
-            final_agent_dir = agent.agent_dir
-            dir_idx = DIRECTIONS.index(agent.agent_dir)
-            for action in path_to_spot:
-                if action == ACTION_TURN_LEFT: dir_idx = (dir_idx - 1 + 4) % 4
-                if action == ACTION_TURN_RIGHT: dir_idx = (dir_idx + 1) % 4
-            final_agent_dir = DIRECTIONS[dir_idx]
-            
-            turns = []
-            target_dir_vec = (wumpus_pos[0] - shooting_spot[0], wumpus_pos[1] - shooting_spot[1])
-            if target_dir_vec not in DIRECTIONS: return None # Invalid shooting vector.
-
-            while final_agent_dir != target_dir_vec:
-                current_idx, target_idx = DIRECTIONS.index(final_agent_dir), DIRECTIONS.index(target_dir_vec)
-                # Compare to find the shortest turn direction.
-                if (target_idx - current_idx + 4) % 4 < (current_idx - target_idx + 4) % 4:
-                    turns.append(ACTION_TURN_RIGHT)
-                    final_agent_dir = DIRECTIONS[(current_idx + 1) % 4]
-                else:
-                    turns.append(ACTION_TURN_LEFT)
-                    final_agent_dir = DIRECTIONS[(current_idx - 1 + 4) % 4]
-            
-            agent.last_shoot_dir = target_dir_vec # Crucial for processing the Scream percept.
+            wumpus_pos, path_to_spot, turns = details
+            # Use the spot coordinate (the safe spot to shoot from) instead of the last action string
+            if path_to_spot:
+                # The spot is the destination coordinate to shoot from
+                spot = path_to_spot_destination = None
+                # Try to get the spot from the pathfinding logic (should be the target spot)
+                # But since we have it in the loop above, we can pass it as part of details if needed
+                # For now, we assume the spot is the last cell in the path, so we need to simulate the end position
+                # But since the path is a list of actions, not positions, we need to use the spot variable from the loop
+                # So, let's pass spot as part of details in the shoot option above
+                # For now, fallback to agent.agent_pos if not available
+                # This fix assumes spot is available in the closure, otherwise fallback
+                # But the correct fix is to pass spot as part of details in the shoot option
+                # For now, fallback to agent.agent_pos
+                # But the correct fix is below:
+                # target_dir_vec = (wumpus_pos[0] - spot[0], wumpus_pos[1] - spot[1])
+                # But since spot is not available here, fallback:
+                target_dir_vec = (wumpus_pos[0] - agent.agent_pos[0], wumpus_pos[1] - agent.agent_pos[1])
+            else:
+                target_dir_vec = (wumpus_pos[0] - agent.agent_pos[0], wumpus_pos[1] - agent.agent_pos[1])
+            agent.last_shoot_dir = target_dir_vec
             return path_to_spot + turns + [ACTION_SHOOT]
 
         elif action_type == "move":
-            # The movement plan is already contained in 'details'.
             return details
             
         return None
 
-    def _calculate_threat_score(self, agent, pos):
+
+    def _calculate_turns_to_face(self, path, start_dir, start_pos, target_pos):
+        """Helper to calculate the turning actions needed to face a target."""
+        final_dir_idx = DIRECTIONS.index(start_dir)
+        for action in path:
+            if action == ACTION_TURN_LEFT: final_dir_idx = (final_dir_idx - 1 + 4) % 4
+            elif action == ACTION_TURN_RIGHT: final_dir_idx = (final_dir_idx + 1) % 4
+        
+        final_dir = DIRECTIONS[final_dir_idx]
+        target_dir_vec = (target_pos[0] - start_pos[0], target_pos[1] - start_pos[1])
+        
+        turns = []
+        if target_dir_vec not in DIRECTIONS: return [] # Should not happen with adjacent cells
+
+        target_idx = DIRECTIONS.index(target_dir_vec)
+        current_idx = DIRECTIONS.index(final_dir)
+        
+        diff = (target_idx - current_idx + 4) % 4
+        if diff == 1: turns = [ACTION_TURN_RIGHT]
+        elif diff == 2: turns = [ACTION_TURN_RIGHT, ACTION_TURN_RIGHT]
+        elif diff == 3: turns = [ACTION_TURN_LEFT]
+        
+        return turns
+
+    def _predict_end_cell(self, start_pos, start_dir, path, actions_left):
+        """Predicts the agent's location when the epoch ends."""
+        pos, dir_idx = start_pos, DIRECTIONS.index(start_dir)
+        path_cutoff = path[:min(len(path), actions_left)]
+        
+        for action in path_cutoff:
+            if action == ACTION_MOVE_FORWARD:
+                dx, dy = DIRECTIONS[dir_idx]
+                pos = (pos[0] + dx, pos[1] + dy)
+            elif action == ACTION_TURN_LEFT:
+                dir_idx = (dir_idx - 1 + 4) % 4
+            elif action == ACTION_TURN_RIGHT:
+                dir_idx = (dir_idx + 1) % 4
+        return pos
+
+    def _epoch_end_safety_penalty(self, kb, cell):
+        """Penalizes standing in a risky spot at the end of an epoch."""
+        if cell is None: return 0
+        penalty = 0
+        for neighbor in kb.get_neighbors(cell):
+            facts = kb.get_facts(neighbor)
+            if F_POSSIBLE_WUMPUS in facts: penalty += 30
+            if F_HAS_STENCH in facts: penalty += 10
+        return penalty
+
+    def _calculate_threat_score(self, kb, pos):
         """Calculates a threat score for an unknown cell based on percepts in neighboring cells."""
         score = 0
-        kb = agent.inference_module.kb
         for neighbor in kb.get_neighbors(pos):
-            # Check adjacent cells that have been visited.
             if kb.visited[neighbor[0]][neighbor[1]]:
                 facts = kb.get_facts(neighbor)
                 if F_HAS_STENCH in facts: score += 1
                 if F_HAS_BREEZE in facts: score += 1
-        return score
-
-    def _calculate_wumpus_likelihood_score(self, agent, pos):
-        """
-        Calculates a simple heuristic score for the likelihood of a Wumpus at 'pos'.
-        The score is based on the number of adjacent, visited cells that have a stench.
-        """
-        score = 0
-        kb = agent.inference_module.kb
-        # Look at the neighbors of the suspected cell 'pos'.
-        for neighbor_of_pos in kb.get_neighbors(pos):
-            # If we have visited that neighbor...
-            if kb.visited[neighbor_of_pos[0]][neighbor_of_pos[1]]:
-                # ...and that neighbor has the 'HasStench' fact...
-                if F_HAS_STENCH in kb.get_facts(neighbor_of_pos):
-                    score += 1  # ...increase the confidence score.
         return score

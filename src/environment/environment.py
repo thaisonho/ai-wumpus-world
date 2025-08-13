@@ -199,3 +199,9 @@ class WumpusWorldEnvironment:
             "score": self.score,
             "game_state": self.game_state,
         }
+    
+    def get_true_map(self):
+        """
+        # Trả về bản đồ thực của môi trường để gỡ lỗi.
+        """
+        return self.game_map

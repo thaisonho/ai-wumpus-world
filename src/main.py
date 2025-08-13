@@ -138,6 +138,7 @@ def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3, moving_wump
             display.paused = True
 
         # 3. Agent makes a decision
+        #agent._determine_next_goal()
         chosen_action = agent.decide_action(current_percepts)
 
         # 4. The environment processes the action
@@ -253,6 +254,7 @@ def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3, moving_wump
         score=agent.score,
         percepts=env.last_percepts,
         message=final_message,
+        true_map=env.get_true_map(),
     )
     
     # Show final results

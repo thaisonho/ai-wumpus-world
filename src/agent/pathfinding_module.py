@@ -1,13 +1,6 @@
 # src/agent/pathfinding_module.py
 import heapq
-from utils.constants import (
-    DIRECTIONS,
-    ACTION_MOVE_FORWARD,
-    ACTION_TURN_LEFT,
-    ACTION_TURN_RIGHT,
-    SCORE_MOVE_FORWARD,
-    SCORE_TURN,
-)
+from utils.constants import (DIRECTIONS, ACTION_MOVE_FORWARD, ACTION_TURN_LEFT, ACTION_TURN_RIGHT, SCORE_MOVE_FORWARD, SCORE_TURN, RISK_DANGEROUS, RISK_UNKNOWN, RISK_VISITED_SOFT)
 
 class PathfindingModule:
     """
@@ -44,6 +37,21 @@ class PathfindingModule:
         """
         return abs(pos[0] - goal_pos[0]) + abs(pos[1] - goal_pos[1])
 
+    def _calculate_dynamic_risk(self, status, is_moving_wumpus_mode, actions_left_in_epoch):
+        if not is_moving_wumpus_mode:
+            if status == "Dangerous": return RISK_DANGEROUS
+            if status == "Unknown": return RISK_UNKNOWN
+            return 0
+
+        base_risk = 0
+        if status == "Dangerous": base_risk = RISK_DANGEROUS
+        elif status == "Unknown": base_risk = RISK_UNKNOWN
+        elif status == "Visited": base_risk = RISK_VISITED_SOFT # Soft risk for visited cells
+
+        # Scale risk higher as the end of the epoch approaches
+        epoch_scale = 1.0 + (1.5 / max(1, actions_left_in_epoch))
+        return base_risk * epoch_scale
+    
     def find_path(
         self,
         start_pos,
@@ -51,6 +59,8 @@ class PathfindingModule:
         goal_pos,
         kb_status,
         avoid_dangerous=True,
+        is_moving_wumpus_mode=False,
+        actions_left_in_epoch=5 
     ):
         """
         Implements the A* search algorithm to find an optimal path from a start
@@ -111,8 +121,9 @@ class PathfindingModule:
                 if not (avoid_dangerous and cell_status == "Dangerous"):
                     # Add a risk penalty to the cost for entering non-safe cells.
                     risk_cost = 0
-                    if cell_status == "Dangerous": risk_cost = 100 # High penalty for known danger
-                    elif cell_status == "Unknown": risk_cost = 10  # Moderate penalty for uncertainty
+                    risk_cost = self._calculate_dynamic_risk(
+                        cell_status, is_moving_wumpus_mode, actions_left_in_epoch
+                    )
 
                     new_g_cost = g_cost + abs(SCORE_MOVE_FORWARD) + risk_cost
                     next_state = (next_pos, current_dir)
