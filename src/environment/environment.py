@@ -144,6 +144,7 @@ class WumpusWorldEnvironment:
             if GOLD_SYMBOL in self.game_map[self.agent_pos[0]][self.agent_pos[1]]:
                 self.agent_has_gold = True
                 self.game_map[self.agent_pos[0]][self.agent_pos[1]].remove(GOLD_SYMBOL)
+                print(f"Gold removed from environment at position {self.agent_pos}")
                 self.score += SCORE_GRAB_GOLD
                 message = "Success! You grabbed the gold."
             else:
