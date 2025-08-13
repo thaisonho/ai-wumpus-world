@@ -204,6 +204,8 @@ def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3, moving_wump
             # Update the GUI with the complete current state
             display.update_environment_state(env_map)
 
+        action_msg = f"Step {step_count}: Action: {chosen_action}. Result: {action_message}"
+        
         display.display_map(
             agent_known_map=agent.get_known_map(),
             agent_kb_status=agent.get_kb_status(),
@@ -212,7 +214,7 @@ def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3, moving_wump
             agent_has_gold=agent.agent_has_gold,
             score=agent.score,
             percepts=env.last_percepts,  # Use last_percepts to include bumps
-            message=f"Step {step_count}: Action: {chosen_action}. Result: {action_message}",
+            message=action_msg,
         )
         display.pause(delay)
 

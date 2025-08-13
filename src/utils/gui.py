@@ -73,11 +73,9 @@ class WumpusWorldGUI:
         self.assets = {}
         self._load_assets()
         
-        # Initialize log area with scrolling
+        # Initialize log area
         self.log_messages = []
-        self.max_log_messages = 100  # Store more messages
-        self.log_scroll_position = 0  # For scrolling
-        self.visible_log_lines = 0  # Will be calculated dynamically
+        self.max_log_messages = 100  # Maximum number of messages to store
         
         # Game state
         self.current_message = ""
@@ -144,14 +142,18 @@ class WumpusWorldGUI:
         # Update current message
         self.current_message = message
         
-        # Add message to log if it's different from last message
-        if message and (not self.log_messages or message != self.log_messages[-1]):
+        # Add message to log if it's not empty
+        if message:
+            # Always add step messages to the log
             self.log_messages.append(message)
+                
+            # Limit the number of messages we keep
             if len(self.log_messages) > self.max_log_messages:
                 self.log_messages.pop(0)
                 
         # Save the state to history if we're not in history viewing mode or special mode
-        if self.current_history_index == -1 and not self.paused and not self.step_mode:
+        # Always save state to ensure logs are captured properly
+        if self.current_history_index == -1:  # Only save if we're in live mode (not viewing history)
             self.save_state_snapshot(agent_known_map, agent_kb_status, agent_pos, agent_dir,
                                     agent_has_gold, score, percepts)
         # Special value -2 means we're redrawing from history, don't save
@@ -386,7 +388,7 @@ class WumpusWorldGUI:
         self.screen.blit(pos_text, (info_panel_x, info_panel_y))
         info_panel_y += 25
         
-        dir_symbols = {NORTH: "↑", EAST: "→", SOUTH: "↓", WEST: "←"}
+        dir_symbols = {NORTH: "^", EAST: ">", SOUTH: "v", WEST: "<"}
         dir_text = self.font_medium.render(
             f"Direction: {dir_symbols.get(agent_dir, '?')}", 
             True, (255, 255, 255))
@@ -431,12 +433,6 @@ class WumpusWorldGUI:
         log_header = self.font_medium.render("Agent Log:", True, (255, 255, 255))
         self.screen.blit(log_header, (info_panel_x + 10, info_panel_y + 5))
         
-        # Draw scroll controls
-        scroll_up = self.font_medium.render("▲", True, (200, 200, 200))
-        scroll_down = self.font_medium.render("▼", True, (200, 200, 200))
-        self.screen.blit(scroll_up, (info_panel_x + info_panel_width - 60, info_panel_y + 5))
-        self.screen.blit(scroll_down, (info_panel_x + info_panel_width - 30, info_panel_y + 5))
-        
         info_panel_y += 35
         
         # Create a background for the log area
@@ -444,57 +440,28 @@ class WumpusWorldGUI:
         log_bg = pygame.Rect(info_panel_x, info_panel_y, info_panel_width, log_height)
         pygame.draw.rect(self.screen, (30, 30, 40), log_bg, border_radius=5)
         
-        # Process log messages to determine total lines for scrolling
-        all_log_lines = []
-        for i, log_msg in enumerate(self.log_messages):
-            # Wrap long log messages
-            words = log_msg.split()
-            log_lines = []
-            current_line = ""
-            for word in words:
-                test_line = current_line + " " + word if current_line else word
-                if self.font_small.size(test_line)[0] < info_panel_width - 40:  # Leave room for scrollbar
-                    current_line = test_line
-                else:
-                    log_lines.append((current_line, i % 2 == 0))
-                    current_line = word
-            if current_line:
-                log_lines.append((current_line, i % 2 == 0))
-            
-            all_log_lines.extend(log_lines)
-            # Add a blank line between log entries for separation
-            if i < len(self.log_messages) - 1:
-                all_log_lines.append(("", i % 2 == 0))
-        
-        # Calculate how many lines we can display
+        # Process log messages - show most recent messages first
+        # Determine how many lines we can fit
         line_height = 20
-        self.visible_log_lines = (log_height - 20) // line_height
+        max_displayable_lines = (log_height - 20) // line_height
         
-        # Ensure scroll position is valid
-        max_scroll = max(0, len(all_log_lines) - self.visible_log_lines)
-        self.log_scroll_position = min(self.log_scroll_position, max_scroll)
-        self.log_scroll_position = max(0, self.log_scroll_position)
+        # Always show the most recent messages (last N messages)
+        # Get last N messages in reverse order (newest first)
+        display_messages = list(reversed(self.log_messages[-max_displayable_lines:]))
         
-        # Draw visible log lines with scrolling
-        visible_lines = all_log_lines[self.log_scroll_position:self.log_scroll_position + self.visible_log_lines]
-        
-        for i, (line, is_even) in enumerate(visible_lines):
-            # Use different colors for alternating log entries
-            text_color = (180, 180, 200) if is_even else (200, 200, 180)
-            log_line_text = self.font_small.render(line, True, text_color)
-            self.screen.blit(log_line_text, (info_panel_x + 10, info_panel_y + 10 + i * line_height))
-        
-        # Draw scrollbar if needed
-        if len(all_log_lines) > self.visible_log_lines:
-            scrollbar_height = max(30, (self.visible_log_lines / len(all_log_lines)) * log_height)
-            scrollbar_pos = (self.log_scroll_position / (len(all_log_lines) - self.visible_log_lines)) * (log_height - scrollbar_height)
-            scrollbar_rect = pygame.Rect(
-                info_panel_x + info_panel_width - 15, 
-                info_panel_y + scrollbar_pos, 
-                10, 
-                scrollbar_height
-            )
-            pygame.draw.rect(self.screen, (100, 100, 120), scrollbar_rect, border_radius=5)
+        # Draw the messages starting from the newest at the top
+        y_offset = 10
+        for i, log_msg in enumerate(display_messages):
+            # Alternate colors for readability
+            text_color = (180, 180, 200) if i % 2 == 0 else (200, 200, 180)
+            
+            # Render the message
+            log_text = self.font_small.render(log_msg, True, text_color)
+            
+            # Draw the message if it fits in the log area
+            if y_offset + line_height <= log_height:
+                self.screen.blit(log_text, (info_panel_x + 10, info_panel_y + y_offset))
+                y_offset += line_height
         
         # Draw legend at the bottom
         legend_y = self.window_height - 30
@@ -801,13 +768,8 @@ class WumpusWorldGUI:
                             pygame.display.flip()
                         
                 elif event.type == pygame.MOUSEBUTTONDOWN:
-                    # Scroll the log with mouse wheel
-                    if event.button == 4:  # Scroll up
-                        self.log_scroll_position = max(0, self.log_scroll_position - 3)
-                        pygame.display.flip()
-                    elif event.button == 5:  # Scroll down
-                        self.log_scroll_position += 3
-                        pygame.display.flip()
+                    # Mouse clicks/scrolling - no scrolling needed for logs
+                    pass
                         
             if not (self.paused or time.time() - start_time < seconds):
                 break
