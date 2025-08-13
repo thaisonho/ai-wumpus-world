@@ -5,6 +5,7 @@ This project implements an AI agent that navigates through the Wumpus World envi
 ## Features
 
 - Intelligent agent using logical inference and knowledge representation
+- Knowledge base and inference engine for logical reasoning
 - Multiple environment options (static or moving wumpuses)
 - Choice between text-based display or graphical user interface (GUI)
 

@@ -1,8 +1,8 @@
 from environment.environment import WumpusWorldEnvironment
 from environment.advanced_environment import AdvancedWumpusWorldEnvironment
-from agent.agent import WumpusWorldAgent  # Import the intelligent agent
-from utils.display import WumpusWorldDisplay  # Keep for fallback
-from utils.gui import WumpusWorldGUI  # Import the new GUI class
+from agent.agent import WumpusWorldAgent  # Import the intelligent agent with inference capability
+from utils.display import WumpusWorldDisplay  # Text-based display fallback
+from utils.gui import WumpusWorldGUI  # Graphical user interface
 from utils.constants import (
     N_DEFAULT,
     K_DEFAULT,
