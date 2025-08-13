@@ -1,6 +1,7 @@
 import pygame
 import os
 import time
+import copy
 from utils.constants import (
     AGENT_SYMBOL,
     WUMPUS_SYMBOL,
@@ -48,8 +49,20 @@ class WumpusWorldGUI:
         max_grid_width = window_width - 400    # Leave room for info panel
         self.grid_size = min(max_grid_width // N, max_grid_height // N)
         self.grid_margin = 50
+        
+        # Initialize player direction images dictionary (will be set in display_map)
+        self.player_direction_images = {}
+        
+        # Simulation control
+        self.paused = False
+        self.step_mode = False  # When True, advances one step at a time
         self.grid_offset_x = 50
         self.grid_offset_y = 50
+        
+        # History tracking for step navigation
+        self.history = []  # List of game state snapshots
+        self.current_history_index = -1  # Current position in history (-1 means live/current state)
+        self.max_history = 100  # Maximum number of history states to keep
         
         # Font configuration
         self.font_small = pygame.font.SysFont('Arial', 16)
@@ -60,9 +73,11 @@ class WumpusWorldGUI:
         self.assets = {}
         self._load_assets()
         
-        # Initialize log area
+        # Initialize log area with scrolling
         self.log_messages = []
-        self.max_log_messages = 10
+        self.max_log_messages = 100  # Store more messages
+        self.log_scroll_position = 0  # For scrolling
+        self.visible_log_lines = 0  # Will be calculated dynamically
         
         # Game state
         self.current_message = ""
@@ -83,7 +98,11 @@ class WumpusWorldGUI:
             'wumpus': 'wumpus.png',
             'gold': 'gold-icon.png',
             'pit': 'hole.png',
-            'player': 'player_facing_to_down.png'
+            # Player images for each direction
+            'player_down': 'player_facing_to_down.png',
+            'player_up': 'player_facing_to_up.png',
+            'player_left': 'player_facing_to_left.png',
+            'player_right': 'player_facing_to_right.png'
         }
         
         for key, filename in asset_files.items():
@@ -97,6 +116,9 @@ class WumpusWorldGUI:
                 placeholder = pygame.Surface((self.grid_size, self.grid_size))
                 placeholder.fill((200, 50, 50))
                 self.assets[key] = placeholder
+                
+        # For backward compatibility
+        self.assets['player'] = self.assets['player_down']
         
         # Create a red cross for marking killed wumpuses
         cross = pygame.Surface((self.grid_size, self.grid_size), pygame.SRCALPHA)
@@ -127,8 +149,22 @@ class WumpusWorldGUI:
             self.log_messages.append(message)
             if len(self.log_messages) > self.max_log_messages:
                 self.log_messages.pop(0)
+                
+        # Save the state to history if we're not in history viewing mode or special mode
+        if self.current_history_index == -1 and not self.paused and not self.step_mode:
+            self.save_state_snapshot(agent_known_map, agent_kb_status, agent_pos, agent_dir,
+                                    agent_has_gold, score, percepts)
+        # Special value -2 means we're redrawing from history, don't save
         
-        # Handle agent_dir rotation
+        # Map directions to player images
+        self.player_direction_images = {
+            NORTH: 'player_up',    # Facing up
+            EAST: 'player_right',  # Facing right
+            SOUTH: 'player_down',  # Facing down
+            WEST: 'player_left'    # Facing left
+        }
+        
+        # For backwards compatibility
         player_rotations = {
             NORTH: 0,    # Facing up - no rotation needed
             EAST: 270,   # Facing right - rotate 270 degrees counterclockwise
@@ -234,11 +270,9 @@ class WumpusWorldGUI:
                 # Draw the agent AFTER all other elements so it's always visible on top
                 # This ensures it doesn't appear to move through pits or wumpuses
                 if cell_pos == agent_pos:
-                    # Get the player image and rotate according to direction
-                    player_img = self.assets['player'].copy()
-                    rotation = player_rotations.get(agent_dir, 0)
-                    if rotation != 0:
-                        player_img = pygame.transform.rotate(player_img, rotation)
+                    # Get the appropriate player image based on direction
+                    player_image_key = self.player_direction_images.get(agent_dir, 'player_down')
+                    player_img = self.assets[player_image_key].copy()
                     
                     self.screen.blit(player_img, (screen_x, screen_y))
                     
@@ -389,18 +423,29 @@ class WumpusWorldGUI:
         
         info_panel_y += 70
         
-        # Draw log area with header and border
+        # Draw log area with header, border, and controls
+        log_header_rect = pygame.Rect(info_panel_x, info_panel_y, info_panel_width, 30)
+        pygame.draw.rect(self.screen, (50, 50, 60), log_header_rect, border_radius=5)
+        
+        # Draw log header text
         log_header = self.font_medium.render("Agent Log:", True, (255, 255, 255))
-        self.screen.blit(log_header, (info_panel_x, info_panel_y))
-        info_panel_y += 30
+        self.screen.blit(log_header, (info_panel_x + 10, info_panel_y + 5))
+        
+        # Draw scroll controls
+        scroll_up = self.font_medium.render("▲", True, (200, 200, 200))
+        scroll_down = self.font_medium.render("▼", True, (200, 200, 200))
+        self.screen.blit(scroll_up, (info_panel_x + info_panel_width - 60, info_panel_y + 5))
+        self.screen.blit(scroll_down, (info_panel_x + info_panel_width - 30, info_panel_y + 5))
+        
+        info_panel_y += 35
         
         # Create a background for the log area
         log_height = self.window_height - info_panel_y - 30
         log_bg = pygame.Rect(info_panel_x, info_panel_y, info_panel_width, log_height)
         pygame.draw.rect(self.screen, (30, 30, 40), log_bg, border_radius=5)
         
-        # Draw log messages with timestamps
-        log_y = info_panel_y + 10
+        # Process log messages to determine total lines for scrolling
+        all_log_lines = []
         for i, log_msg in enumerate(self.log_messages):
             # Wrap long log messages
             words = log_msg.split()
@@ -408,29 +453,48 @@ class WumpusWorldGUI:
             current_line = ""
             for word in words:
                 test_line = current_line + " " + word if current_line else word
-                if self.font_small.size(test_line)[0] < info_panel_width - 20:
+                if self.font_small.size(test_line)[0] < info_panel_width - 40:  # Leave room for scrollbar
                     current_line = test_line
                 else:
-                    log_lines.append(current_line)
+                    log_lines.append((current_line, i % 2 == 0))
                     current_line = word
             if current_line:
-                log_lines.append(current_line)
+                log_lines.append((current_line, i % 2 == 0))
             
-            # Draw each line of the log message
-            for j, line in enumerate(log_lines):
-                # Use different colors for alternating log entries
-                text_color = (180, 180, 200) if i % 2 == 0 else (200, 200, 180)
-                log_line_text = self.font_small.render(line, True, text_color)
-                
-                # Check if we're still within the log area
-                if log_y + j * 20 < info_panel_y + log_height - 10:
-                    self.screen.blit(log_line_text, (info_panel_x + 10, log_y + j * 20))
-            
-            log_y += len(log_lines) * 20 + 5  # Add spacing between log entries
-            
-            # Stop if we run out of space
-            if log_y >= info_panel_y + log_height - 20:
-                break
+            all_log_lines.extend(log_lines)
+            # Add a blank line between log entries for separation
+            if i < len(self.log_messages) - 1:
+                all_log_lines.append(("", i % 2 == 0))
+        
+        # Calculate how many lines we can display
+        line_height = 20
+        self.visible_log_lines = (log_height - 20) // line_height
+        
+        # Ensure scroll position is valid
+        max_scroll = max(0, len(all_log_lines) - self.visible_log_lines)
+        self.log_scroll_position = min(self.log_scroll_position, max_scroll)
+        self.log_scroll_position = max(0, self.log_scroll_position)
+        
+        # Draw visible log lines with scrolling
+        visible_lines = all_log_lines[self.log_scroll_position:self.log_scroll_position + self.visible_log_lines]
+        
+        for i, (line, is_even) in enumerate(visible_lines):
+            # Use different colors for alternating log entries
+            text_color = (180, 180, 200) if is_even else (200, 200, 180)
+            log_line_text = self.font_small.render(line, True, text_color)
+            self.screen.blit(log_line_text, (info_panel_x + 10, info_panel_y + 10 + i * line_height))
+        
+        # Draw scrollbar if needed
+        if len(all_log_lines) > self.visible_log_lines:
+            scrollbar_height = max(30, (self.visible_log_lines / len(all_log_lines)) * log_height)
+            scrollbar_pos = (self.log_scroll_position / (len(all_log_lines) - self.visible_log_lines)) * (log_height - scrollbar_height)
+            scrollbar_rect = pygame.Rect(
+                info_panel_x + info_panel_width - 15, 
+                info_panel_y + scrollbar_pos, 
+                10, 
+                scrollbar_height
+            )
+            pygame.draw.rect(self.screen, (100, 100, 120), scrollbar_rect, border_radius=5)
         
         # Draw legend at the bottom
         legend_y = self.window_height - 30
@@ -511,9 +575,16 @@ class WumpusWorldGUI:
                     if WUMPUS_SYMBOL in self.env_map[pos] and pos not in killed_wumpuses:
                         self.env_map[pos].remove(WUMPUS_SYMBOL)
                     
+                    # First remove gold (if it was previously here) because it can be collected
+                    if GOLD_SYMBOL in self.env_map[pos] and GOLD_SYMBOL not in cell_elements:
+                        self.env_map[pos].remove(GOLD_SYMBOL)
+                        print(f"Gold removed from position {pos} because it's no longer in the environment")
+                        
                     # Add elements from the environment
                     for element in cell_elements:
-                        if element in [PIT_SYMBOL, GOLD_SYMBOL]:
+                        if element == PIT_SYMBOL:
+                            self.env_map[pos].add(element)
+                        elif element == GOLD_SYMBOL:
                             self.env_map[pos].add(element)
                         elif element == WUMPUS_SYMBOL:
                             self.env_map[pos].add(WUMPUS_SYMBOL)
@@ -525,7 +596,6 @@ class WumpusWorldGUI:
             
         else:  # This is the agent's knowledge map
             # Process the agent's map to update our environment record
-            # We'll only add elements that the agent discovers, not remove them
             for x in range(self.N):
                 for y in range(self.N):
                     pos = (x, y)
@@ -534,6 +604,14 @@ class WumpusWorldGUI:
                     # Initialize the position in our environment map if needed
                     if pos not in self.env_map:
                         self.env_map[pos] = set()
+                    
+                    # Check if gold is in this cell from agent's knowledge
+                    has_gold_in_cell = GOLD_SYMBOL in cell_elements
+                    
+                    # Remove gold if it's not in the cell anymore (was collected)
+                    if GOLD_SYMBOL in self.env_map[pos] and not has_gold_in_cell:
+                        self.env_map[pos].remove(GOLD_SYMBOL)
+                        print(f"Gold removed from GUI at position {pos} based on agent's knowledge")
                     
                     # Add any elements found in this cell
                     for element in cell_elements:
@@ -583,10 +661,6 @@ class WumpusWorldGUI:
         for killed_pos in self.killed_wumpuses:
             if killed_pos not in environment['wumpuses']:
                 environment['wumpuses'].append(killed_pos)
-                
-        # Debug print
-        if self.wumpus_positions:
-            print(f"Current wumpus positions: {self.wumpus_positions}")
         
         return environment
     
@@ -610,18 +684,320 @@ class WumpusWorldGUI:
             self.wumpus_positions.append(wumpus_pos)
     
     def pause(self, seconds=0.5):
-        """Pause the display for a given number of seconds"""
+        """
+        Pause the display for a given number of seconds or wait for key press in step mode
+        Also handles pause/unpause and step mode toggling via keyboard
+        Returns True if the pause should be skipped (for next step)
+        """
         start_time = time.time()
-        while time.time() - start_time < seconds:
+        waiting_for_step = self.step_mode
+        should_skip_pause = False  # To return to main loop for immediate step
+        
+        # Create text overlay if paused or in step mode
+        if self.paused or self.step_mode or self.current_history_index != -1:
+            overlay_surface = pygame.Surface((400, 120), pygame.SRCALPHA)
+            overlay_surface.fill((0, 0, 0, 180))  # Semi-transparent black
+            
+            if self.current_history_index != -1:
+                status_text = f"HISTORY ({self.current_history_index + 1}/{len(self.history)})"
+                help_text1 = "LEFT/RIGHT arrows to navigate history"
+                help_text2 = "HOME: return to live state"
+            elif self.paused:
+                status_text = "PAUSED"
+                help_text1 = "P to unpause, S for step mode"
+                help_text2 = "RIGHT arrow to execute next step"
+            else:  # step mode
+                status_text = "STEP MODE"
+                help_text1 = "SPACE/RIGHT to advance step, P to play"
+                help_text2 = "LEFT to view history"
+                
+            # Add history indicator bar if we have history
+            if self.history and (self.paused or self.current_history_index != -1):
+                indicator_width = 300
+                indicator_height = 10
+                pygame.draw.rect(overlay_surface, (50, 50, 50), 
+                                (50, 105, indicator_width, indicator_height))
+                
+                if self.current_history_index == -1:
+                    # We're at live state, show at far right
+                    pos = indicator_width
+                else:
+                    # Calculate position based on index
+                    pos = int((self.current_history_index + 1) / len(self.history) * indicator_width)
+                
+                # Draw position indicator
+                pygame.draw.rect(overlay_surface, (100, 255, 100), 
+                                (50 + pos - 5, 105 - 2, 10, indicator_height + 4))
+                
+            text_render = self.font_large.render(status_text, True, (255, 255, 255))
+            help_render1 = self.font_small.render(help_text1, True, (200, 200, 200))
+            help_render2 = self.font_small.render(help_text2, True, (200, 200, 200))
+            
+            overlay_surface.blit(text_render, (200 - text_render.get_width() // 2, 20))
+            overlay_surface.blit(help_render1, (200 - help_render1.get_width() // 2, 50))
+            overlay_surface.blit(help_render2, (200 - help_render2.get_width() // 2, 80))
+            
+            # Position overlay in the center of the grid
+            overlay_x = self.grid_offset_x + (self.grid_size * self.N) // 2 - 200
+            overlay_y = self.grid_offset_y + (self.grid_size * self.N) // 2 - 60
+            
+            self.screen.blit(overlay_surface, (overlay_x, overlay_y))
+            pygame.display.flip()
+        
+        while (self.paused or waiting_for_step or time.time() - start_time < seconds):
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     exit()
+                    
+                elif event.type == pygame.KEYDOWN:
+                    # 'P' key toggles pause
+                    if event.key == pygame.K_p:
+                        self.paused = not self.paused
+                        self.step_mode = False
+                        waiting_for_step = False
+                        # Return to live state if unpausing from history view
+                        if self.current_history_index != -1 and not self.paused:
+                            self.current_history_index = -1
+                        # Redraw the screen to update the overlay
+                        pygame.display.flip()
+                        
+                    # 'S' key toggles step mode
+                    elif event.key == pygame.K_s:
+                        self.step_mode = not self.step_mode
+                        self.paused = False
+                        waiting_for_step = self.step_mode
+                        # Return to live state if enabling step mode from history view
+                        if self.current_history_index != -1:
+                            self.current_history_index = -1
+                        # Redraw the screen to update the overlay
+                        pygame.display.flip()
+                        
+                    # Space bar advances in step mode
+                    elif event.key == pygame.K_SPACE and waiting_for_step:
+                        waiting_for_step = False
+                    
+                    # LEFT arrow to go to previous step
+                    elif event.key == pygame.K_LEFT:
+                        if not self.paused and not self.step_mode:
+                            self.paused = True  # Pause when starting to navigate history
+                        if self.go_to_previous_step():
+                            # Redraw the overlay
+                            pygame.display.flip()
+                    
+                    # RIGHT arrow to go to next step in history or advance step when paused
+                    elif event.key == pygame.K_RIGHT:
+                        if self.current_history_index != -1:
+                            # In history mode - navigate forward in history
+                            if self.go_to_next_step():
+                                # Redraw the overlay
+                                pygame.display.flip()
+                        elif self.paused:
+                            # When paused and at current state, advance one step
+                            # Temporarily unpause to allow one step to execute
+                            self.paused = False
+                            should_skip_pause = True  # Signal to main loop we want one step
+                            waiting_for_step = False  # Exit the pause loop
+                            print("Next step requested - executing one step")
+                        elif self.step_mode:
+                            # In step mode, this works like space
+                            waiting_for_step = False  # Exit the pause loop
+                    
+                    # HOME key to return to current state
+                    elif event.key == pygame.K_HOME:
+                        original_index = self.current_history_index
+                        self.current_history_index = -1
+                        if original_index != -1:
+                            # Force a redraw of the current state
+                            pygame.display.flip()
+                        
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    # Scroll the log with mouse wheel
+                    if event.button == 4:  # Scroll up
+                        self.log_scroll_position = max(0, self.log_scroll_position - 3)
+                        pygame.display.flip()
+                    elif event.button == 5:  # Scroll down
+                        self.log_scroll_position += 3
+                        pygame.display.flip()
+                        
+            if not (self.paused or waiting_for_step or time.time() - start_time < seconds):
+                break
+                
             time.sleep(0.01)  # Small sleep to prevent high CPU usage
+                
+        # Return True if we should skip the pause for the next step
+        return should_skip_pause
+                
+    def save_state_snapshot(self, agent_known_map=None, agent_kb_status=None, agent_pos=None, agent_dir=None,
+                         agent_has_gold=None, score=None, percepts=None):
+        """Save current game state to history"""
+        # Create a deep copy of the current state
+        snapshot = {
+            'env_map': copy.deepcopy(self.env_map),
+            'wumpus_positions': copy.deepcopy(self.wumpus_positions),
+            'killed_wumpuses': copy.deepcopy(self.killed_wumpuses),
+            'log_messages': copy.deepcopy(self.log_messages),
+            'current_message': self.current_message
+        }
+        
+        # Store agent state if provided
+        if agent_known_map and agent_kb_status and agent_pos is not None and agent_dir is not None and agent_has_gold is not None and score is not None:
+            snapshot['agent_state'] = {
+                'agent_known_map': copy.deepcopy(agent_known_map),
+                'agent_kb_status': copy.deepcopy(agent_kb_status),
+                'agent_pos': agent_pos,
+                'agent_dir': agent_dir,
+                'agent_has_gold': agent_has_gold,
+                'score': score,
+                'percepts': copy.deepcopy(percepts) if percepts else []
+            }
+        
+        # If we're viewing history and make a change, truncate forward history
+        if self.current_history_index != -1:
+            self.history = self.history[:self.current_history_index + 1]
+            self.current_history_index = -1
+            
+        # Add the snapshot to history, maintaining maximum size
+        self.history.append(snapshot)
+        if len(self.history) > self.max_history:
+            self.history = self.history[-self.max_history:]
+            
+    def restore_state_snapshot(self, index):
+        """Restore game state from history at given index"""
+        if not self.history or index < 0 or index >= len(self.history):
+            return False
+            
+        # Load the snapshot
+        snapshot = self.history[index]
+        self.env_map = copy.deepcopy(snapshot['env_map'])
+        self.wumpus_positions = copy.deepcopy(snapshot['wumpus_positions'])
+        self.killed_wumpuses = copy.deepcopy(snapshot['killed_wumpuses'])
+        self.log_messages = copy.deepcopy(snapshot['log_messages'])
+        self.current_message = snapshot['current_message']
+        
+        # If we have agent state in the snapshot, redraw the screen
+        if 'agent_state' in snapshot:
+            agent_state = snapshot['agent_state']
+            self.redraw_from_snapshot(
+                agent_state['agent_known_map'],
+                agent_state['agent_kb_status'],
+                agent_state['agent_pos'],
+                agent_state['agent_dir'],
+                agent_state['agent_has_gold'],
+                agent_state['score'],
+                agent_state['percepts'],
+                self.current_message
+            )
+        else:
+            # Just update the display
+            pygame.display.flip()
+            
+        return True
+        
+    def redraw_from_snapshot(self, agent_known_map, agent_kb_status, agent_pos, agent_dir,
+                             agent_has_gold, score, percepts, message):
+        """Redraw the screen from a snapshot without saving a new history entry"""
+        # Temporarily disable history saving
+        original_index = self.current_history_index
+        self.current_history_index = -2  # Special value to prevent history saving
+        
+        # Redraw the screen
+        self.display_map(
+            agent_known_map,
+            agent_kb_status,
+            agent_pos,
+            agent_dir,
+            agent_has_gold,
+            score,
+            percepts,
+            message
+        )
+        
+        # Restore original history index
+        self.current_history_index = original_index
+        
+
+        
+    def go_to_previous_step(self):
+        """Navigate to the previous step in history"""
+        if not self.history:
+            print("No history available")
+            return False
+            
+        target_index = self.current_history_index - 1
+        if self.current_history_index == -1:  # We're at current/live state
+            target_index = len(self.history) - 1
+            print(f"Going to history step {target_index + 1}/{len(self.history)}")
+            
+        if target_index >= 0:
+            self.current_history_index = target_index
+            print(f"Going to history step {target_index + 1}/{len(self.history)}")
+            return self.restore_state_snapshot(target_index)
+        print("Already at earliest history step")
+        return False
+        
+    def go_to_next_step(self):
+        """Navigate to the next step in history"""
+        if not self.history:
+            print("No history available")
+            return False
+            
+        if self.current_history_index == -1:
+            print("Already at current state")
+            return False
+            
+        target_index = self.current_history_index + 1
+        if target_index < len(self.history):
+            self.current_history_index = target_index
+            print(f"Going to history step {target_index + 1}/{len(self.history)}")
+            return self.restore_state_snapshot(target_index)
+        else:
+            # Return to live state
+            self.current_history_index = -1
+            print("Returning to current state")
+            return True
     
-    def wait_for_key(self):
-        """Wait for a key press to continue"""
+    def wait_for_key(self, score=None, game_state=None):
+        """
+        Wait for a key press to continue and display final score and game state
+        if provided
+        """
         waiting = True
+        
+        # Create a "GAME OVER" text overlay with score and game state
+        if score is not None and game_state is not None:
+            overlay_surface = pygame.Surface((450, 210), pygame.SRCALPHA)
+            overlay_surface.fill((0, 0, 0, 200))  # Semi-transparent black background
+            
+            # Prepare text renders
+            game_over_text = self.font_large.render("GAME OVER", True, (255, 255, 255))
+            score_text = self.font_medium.render(f"Final Score: {score}", True, (255, 255, 255))
+            state_text = self.font_medium.render(f"Game State: {game_state}", True, (255, 255, 255))
+            
+            # Navigation help
+            help_text1 = self.font_small.render("LEFT/RIGHT arrows: Navigate history/steps", True, (200, 200, 200))
+            help_text2 = self.font_small.render("P: Pause, S: Step mode, SPACE/RIGHT: Next step", True, (200, 200, 200))
+            help_text3 = self.font_small.render("HOME: Return to live state when viewing history", True, (200, 200, 200))
+            exit_text = self.font_small.render("Press any key to exit", True, (255, 200, 200))
+            
+            # Position text on overlay
+            overlay_surface.blit(game_over_text, (225 - game_over_text.get_width() // 2, 20))
+            overlay_surface.blit(score_text, (225 - score_text.get_width() // 2, 60))
+            overlay_surface.blit(state_text, (225 - state_text.get_width() // 2, 90))
+            
+            # Position help text
+            overlay_surface.blit(help_text1, (225 - help_text1.get_width() // 2, 120))
+            overlay_surface.blit(help_text2, (225 - help_text2.get_width() // 2, 145))
+            overlay_surface.blit(help_text3, (225 - help_text3.get_width() // 2, 170))
+            overlay_surface.blit(exit_text, (225 - exit_text.get_width() // 2, 195))
+            
+            # Position overlay in the center of the grid
+            overlay_x = self.grid_offset_x + (self.grid_size * self.N) // 2 - 225
+            overlay_y = self.grid_offset_y + (self.grid_size * self.N) // 2 - 105
+            
+            self.screen.blit(overlay_surface, (overlay_x, overlay_y))
+            pygame.display.flip()
+        
         while waiting:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -629,6 +1005,7 @@ class WumpusWorldGUI:
                     exit()
                 elif event.type == pygame.KEYDOWN:
                     waiting = False
+            time.sleep(0.01)  # Small sleep to prevent high CPU usage
     
     def cleanup(self):
         """Clean up Pygame resources"""

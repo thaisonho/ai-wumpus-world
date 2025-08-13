@@ -119,7 +119,13 @@ def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3, moving_wump
             percepts=current_percepts,
             message=f"Step {step_count}: Agent is thinking...",
         )
-        display.pause(delay)
+        
+        # Pause the display and handle step control
+        skip_pause = display.pause(delay)
+        
+        # If we need to do a single step then pause again, re-enable pause
+        if skip_pause and hasattr(display, 'paused'):
+            display.paused = True
 
         # 3. Agent makes a decision
         chosen_action = agent.decide_action(current_percepts)
@@ -238,9 +244,9 @@ def run_simulation(N=N_DEFAULT, K=K_DEFAULT, p=P_DEFAULT, delay=0.3, moving_wump
     print(f"Game State: {env_state['game_state']}")
     
     if hasattr(display, 'wait_for_key'):
-        # For GUI, wait for a key press
+        # For GUI, wait for a key press and show final score overlay
         print("Press any key to exit.")
-        display.wait_for_key()
+        display.wait_for_key(score=env_state['score'], game_state=env_state['game_state'])
     else:
         # For text display, wait for Enter
         print("Press Enter to exit.")
