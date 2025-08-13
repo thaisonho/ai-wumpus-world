@@ -94,7 +94,7 @@ class WumpusWorldAgent:
         if self.is_moving_wumpus_mode and self.actions_in_current_epoch >= WUMPUS_MOVE_INTERVAL:
             # A wumpus movement phase has just occurred. Reset knowledge.
             self.actions_in_current_epoch = 0
-            self.inference_module.on_new_epoch_starts()
+            self.inference_module.on_new_epoch_starts(is_moving_wumpus_mode=True)
             # print("DEBUG: New epoch started. Knowledge reset.")
 
         # 1. THINK: Update the knowledge base with new information.

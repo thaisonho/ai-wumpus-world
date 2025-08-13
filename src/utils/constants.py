@@ -60,3 +60,6 @@ GAME_STATE_LOST = "Lost"
 # --- Advanced / Moving Wumpus ---
 # After every WUMPUS_MOVE_INTERVAL agent actions, each Wumpus moves 1 step.
 WUMPUS_MOVE_INTERVAL = 5
+RISK_UNKNOWN = 6
+RISK_DANGEROUS = 60
+RISK_VISITED_SOFT = 2 
